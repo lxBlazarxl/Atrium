@@ -4,6 +4,7 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:service_dashdot/service_dashdot.dart';
 import 'package:service_emby/service_emby.dart' as emby;
 import 'package:service_glances/service_glances.dart';
 import 'package:service_jellyfin/service_jellyfin.dart' as jf;
@@ -24,6 +25,7 @@ import '../health_providers.dart';
 import '../screens/calendar_screen.dart';
 import 'dashboard_layout.dart';
 import 'dashboard_widget_kind.dart';
+import 'widgets/dashdot_widget.dart';
 import 'widgets/downloads_widget.dart';
 import 'widgets/recently_added_widget.dart';
 import 'widgets/recently_downloaded_widget.dart';
@@ -124,11 +126,20 @@ class DashboardBoard extends ConsumerWidget {
     };
   }
 
-  static List<Instance> _byKind(List<Instance> instances, ServiceKind kind) =>
-      <Instance>[
-        for (final Instance i in instances)
-          if (i.kind == kind) i,
-      ];
+  static List<Instance> _byKind(List<Instance> instances, ServiceKind kind) {
+    final Set<String> seenIds = <String>{};
+    final Set<String> seenEndpoints = <String>{};
+    final List<Instance> out = <Instance>[];
+    for (final Instance i in instances) {
+      if (i.kind != kind) continue;
+      if (!seenIds.add(i.id)) continue;
+      final String endpoint =
+          i.localUrl.isNotEmpty ? i.localUrl : i.externalUrl;
+      if (endpoint.isNotEmpty && !seenEndpoints.add(endpoint)) continue;
+      out.add(i);
+    }
+    return out;
+  }
 
   Widget _buildWidget(DashboardWidgetKind kind, List<Instance> instances) {
     switch (kind) {
@@ -166,6 +177,10 @@ class DashboardBoard extends ConsumerWidget {
       case DashboardWidgetKind.serverInfo:
         return DashboardServerInfoWidget(
           instances: _byKind(instances, ServiceKind.glances),
+        );
+      case DashboardWidgetKind.dashdot:
+        return DashboardDashdotWidget(
+          instances: _byKind(instances, ServiceKind.dashdot),
         );
       case DashboardWidgetKind.speedtestResults:
         return DashboardSpeedtestResultsWidget(
@@ -215,6 +230,12 @@ class DashboardBoard extends ConsumerWidget {
           ref.invalidate(seerrRequestsProvider(i));
         case ServiceKind.glances:
           ref.invalidate(glancesStatsProvider(i));
+        case ServiceKind.dashdot:
+          ref.invalidate(dashdotInfoProvider(i));
+          ref.invalidate(dashdotCpuHistoryProvider(i));
+          ref.invalidate(dashdotRamHistoryProvider(i));
+          ref.invalidate(dashdotStorageHistoryProvider(i));
+          ref.invalidate(dashdotNetworkHistoryProvider(i));
         case ServiceKind.speedtestTracker:
           ref.invalidate(speedtestOverviewProvider(i));
         case ServiceKind.tracearr:
