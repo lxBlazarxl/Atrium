@@ -467,6 +467,11 @@ void main() {
 
   testWidgets('DashboardBoard edit mode reorders and hides widgets',
       (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     final Instance qbit = makeInstance(ServiceKind.qbittorrent);
     await pumpBody(
       tester,
@@ -526,6 +531,11 @@ void main() {
 
   testWidgets('a widget nothing can fill cannot be shown',
       (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     await pumpBody(
       tester,
       <Override>[
@@ -556,6 +566,11 @@ void main() {
 
   testWidgets('a widget with its service configured can still be shown',
       (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
     final Instance glances = makeInstance(ServiceKind.glances);
     await pumpBody(
       tester,
