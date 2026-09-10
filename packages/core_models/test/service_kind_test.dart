@@ -31,6 +31,7 @@ void main() {
         'dashdot',
         'lidarr',
         'unraid',
+        'navidrome',
       ],
     );
   });
@@ -77,6 +78,14 @@ void main() {
     // Tracearr graduated out of beta once its rebuild landed.
     expect(ServiceKind.tracearr.isBeta, isFalse);
     expect(ServiceKind.unraid.isBeta, isTrue);
+    expect(ServiceKind.navidrome.isBeta, isTrue);
+  });
+
+  test('Navidrome is registered as userPass mediaServer service', () {
+    expect(ServiceKind.navidrome.displayName, 'Navidrome');
+    expect(ServiceKind.navidrome.role, ServiceRole.mediaServer);
+    expect(ServiceKind.navidrome.authStyle, AuthStyle.userPass);
+    expect(ServiceKind.navidrome.defaultPort, 4533);
   });
 
   test('existing services retain their default ports', () {

@@ -92,6 +92,9 @@ enum _HealthMode {
       // The only API Unraid exposes is GraphQL on one endpoint, so the probe
       // POSTs the cheapest query there is rather than fetching a status page.
       return (path: 'graphql', mode: _HealthMode.authed);
+    case ServiceKind.navidrome:
+      // Subsonic API ping endpoint; proves the server is reachable.
+      return (path: 'rest/ping.view?f=json', mode: _HealthMode.reachable);
   }
 }
 

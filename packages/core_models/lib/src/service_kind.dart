@@ -26,6 +26,7 @@ enum ServiceKind {
   dashdot,
   lidarr,
   unraid,
+  navidrome,
 }
 
 /// Static metadata about a [ServiceKind] - display name, default port, the
@@ -57,6 +58,7 @@ extension ServiceKindX on ServiceKind {
         ServiceKind.dashdot => 'Dashdot',
         ServiceKind.lidarr => 'Lidarr',
         ServiceKind.unraid => 'Unraid',
+        ServiceKind.navidrome => 'Navidrome',
       };
 
   /// One-line role description.
@@ -83,6 +85,7 @@ extension ServiceKindX on ServiceKind {
         ServiceKind.dashdot => 'System monitor',
         ServiceKind.lidarr => 'Music',
         ServiceKind.unraid => 'Server',
+        ServiceKind.navidrome => 'Music server',
       };
 
   /// Whether this service's integration is still in beta. Surfaced as a
@@ -93,7 +96,8 @@ extension ServiceKindX on ServiceKind {
         ServiceKind.deluge ||
         ServiceKind.rtorrent ||
         ServiceKind.lidarr ||
-        ServiceKind.unraid =>
+        ServiceKind.unraid ||
+        ServiceKind.navidrome =>
           true,
         _ => false,
       };
@@ -127,6 +131,7 @@ extension ServiceKindX on ServiceKind {
         ServiceKind.lidarr => 8686,
         // Unraid's web UI answers on plain http 80 unless it has been moved.
         ServiceKind.unraid => 80,
+        ServiceKind.navidrome => 4533,
       };
 
   /// What auth flow the service uses by default. Some services (Jellyfin) can
@@ -151,7 +156,8 @@ extension ServiceKindX on ServiceKind {
         ServiceKind.emby ||
         ServiceKind.nzbget ||
         ServiceKind.transmission ||
-        ServiceKind.rtorrent =>
+        ServiceKind.rtorrent ||
+        ServiceKind.navidrome =>
           AuthStyle.userPass,
         ServiceKind.plex => AuthStyle.plexToken,
         // Deluge's Web UI takes a password with no username; it is still a
@@ -176,7 +182,8 @@ extension ServiceKindX on ServiceKind {
         ServiceKind.tautulli || ServiceKind.tracearr => ServiceRole.analytics,
         ServiceKind.jellyfin ||
         ServiceKind.emby ||
-        ServiceKind.plex =>
+        ServiceKind.plex ||
+        ServiceKind.navidrome =>
           ServiceRole.mediaServer,
         ServiceKind.qbittorrent ||
         ServiceKind.sabnzbd ||

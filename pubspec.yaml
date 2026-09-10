@@ -48,3 +48,4 @@ workspace:
   - services/service_lidarr
   - services/service_unraid
   - services/service_ombi
+  - services/service_navidrome
