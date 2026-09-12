@@ -38,6 +38,16 @@ void main() {
       expect(url1, contains('&s='));
     });
 
+    test('getCoverArtUrl respects resolved reverse proxy baseUrl with subpath', () {
+      final dio = Dio(BaseOptions(baseUrl: 'https://proxy.example.com/music/'));
+      final client = NavidromeClient(instance: instance, dio: dio);
+
+      final url = client.getCoverArtUrl('cov-123', size: 300);
+      expect(url, isNotNull);
+      expect(url, startsWith('https://proxy.example.com/music/rest/getCoverArt.view?'));
+      expect(url, contains('id=cov-123'));
+    });
+
     test('getArtists sends auth and parses response', () async {
       final adapter = _MockAdapter((options) {
         expect(options.path, 'rest/getArtists.view');

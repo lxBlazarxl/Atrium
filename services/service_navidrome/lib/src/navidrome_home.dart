@@ -61,9 +61,15 @@ class _NavidromeHomeState extends ConsumerState<NavidromeHome> {
   String _selectedAlbumCategory = NavidromeAlbumCategory.all.type;
 
   Future<void> _launchWeb(BuildContext context) async {
-    final String url = widget.instance.localUrl.isNotEmpty
-        ? widget.instance.localUrl
-        : widget.instance.externalUrl;
+    final NavidromeClient? client =
+        ref.read(navidromeClientProvider(widget.instance)).value;
+    final String rawUrl =
+        (client != null && client.dio.options.baseUrl.isNotEmpty)
+            ? client.dio.options.baseUrl
+            : (widget.instance.localUrl.isNotEmpty
+                ? widget.instance.localUrl
+                : widget.instance.externalUrl);
+    final String url = rawUrl.trim();
     if (url.isEmpty) return;
     final Uri? uri = Uri.tryParse(url);
     if (uri != null) {

@@ -108,10 +108,12 @@ class NavidromeClient {
   /// Builds a deterministic cover art URL so image caches can key properly.
   String? getCoverArtUrl(String? coverArtId, {int? size}) {
     if (coverArtId == null || coverArtId.isEmpty) return null;
-    final String baseUrl = (instance.localUrl.isNotEmpty
+    final String rawBase = dio.options.baseUrl.isNotEmpty
+        ? dio.options.baseUrl
+        : (instance.localUrl.isNotEmpty
             ? instance.localUrl
-            : instance.externalUrl)
-        .trim();
+            : instance.externalUrl);
+    final String baseUrl = rawBase.trim();
     if (baseUrl.isEmpty) return null;
     final String cleanBase = baseUrl.endsWith('/')
         ? baseUrl.substring(0, baseUrl.length - 1)
