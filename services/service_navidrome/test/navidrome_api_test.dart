@@ -305,6 +305,45 @@ void main() {
 
       await client.setRating('album-456', 0);
     });
+
+    test('star sends rest/star.view with correct query parameters', () async {
+      final adapter = _MockAdapter((options) {
+        expect(options.path, 'rest/star.view');
+        expect(options.queryParameters['artistId'], 'art-1');
+        expect(options.queryParameters['albumId'], 'alb-1');
+        return {
+          'subsonic-response': {
+            'status': 'ok',
+            'version': '1.16.1',
+          },
+        };
+      });
+
+      final dio = Dio(BaseOptions(baseUrl: 'http://192.168.1.50:4533/'))
+        ..httpClientAdapter = adapter;
+      final client = NavidromeClient(instance: instance, dio: dio);
+
+      await client.star(artistId: 'art-1', albumId: 'alb-1');
+    });
+
+    test('unstar sends rest/unstar.view with correct query parameters', () async {
+      final adapter = _MockAdapter((options) {
+        expect(options.path, 'rest/unstar.view');
+        expect(options.queryParameters['id'], 'song-1');
+        return {
+          'subsonic-response': {
+            'status': 'ok',
+            'version': '1.16.1',
+          },
+        };
+      });
+
+      final dio = Dio(BaseOptions(baseUrl: 'http://192.168.1.50:4533/'))
+        ..httpClientAdapter = adapter;
+      final client = NavidromeClient(instance: instance, dio: dio);
+
+      await client.unstar(id: 'song-1');
+    });
   });
 }
 

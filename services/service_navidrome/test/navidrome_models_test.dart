@@ -10,6 +10,7 @@ void main() {
         'albumCount': 4,
         'coverArt': 'al-123',
         'artistImageUrl': 'https://example.com/artist.jpg',
+        'starred': '2023-01-01T12:00:00Z',
       };
 
       final artist = NavidromeArtist.fromJson(json);
@@ -18,6 +19,7 @@ void main() {
       expect(artist.albumCount, 4);
       expect(artist.coverArt, 'al-123');
       expect(artist.artistImageUrl, 'https://example.com/artist.jpg');
+      expect(artist.isStarred, true);
     });
 
     test('NavidromeArtistIndex parses single and list', () {
@@ -58,6 +60,7 @@ void main() {
         'genre': 'Electronic',
         'playCount': 120,
         'userRating': 4,
+        'starred': '2023-01-01T12:00:00Z',
       };
 
       final album = NavidromeAlbum.fromJson(json);
@@ -72,6 +75,7 @@ void main() {
       expect(album.genre, 'Electronic');
       expect(album.playCount, 120);
       expect(album.userRating, 4);
+      expect(album.isStarred, true);
     });
 
     test('NavidromeSong parses correctly', () {

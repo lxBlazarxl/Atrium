@@ -23,6 +23,7 @@ class NavidromeArtist {
     this.coverArt,
     this.artistImageUrl,
     this.userRating,
+    this.starred,
   });
 
   final String id;
@@ -31,6 +32,9 @@ class NavidromeArtist {
   final String? coverArt;
   final String? artistImageUrl;
   final int? userRating;
+  final String? starred;
+
+  bool get isStarred => starred != null && starred!.isNotEmpty;
 
   factory NavidromeArtist.fromJson(Map<String, dynamic> json) {
     return NavidromeArtist(
@@ -43,6 +47,7 @@ class NavidromeArtist {
       artistImageUrl: json['artistImageUrl'] as String?,
       userRating: (json['userRating'] as num?)?.toInt() ??
           (json['rating'] as num?)?.toInt(),
+      starred: json['starred'] as String?,
     );
   }
 }
@@ -81,6 +86,7 @@ class NavidromeAlbum {
     this.genre,
     this.playCount = 0,
     this.userRating,
+    this.starred,
   });
 
   final String id;
@@ -94,6 +100,9 @@ class NavidromeAlbum {
   final String? genre;
   final int playCount;
   final int? userRating;
+  final String? starred;
+
+  bool get isStarred => starred != null && starred!.isNotEmpty;
 
   factory NavidromeAlbum.fromJson(Map<String, dynamic> json) {
     return NavidromeAlbum(
@@ -111,6 +120,7 @@ class NavidromeAlbum {
       playCount: (json['playCount'] as num?)?.toInt() ?? 0,
       userRating: (json['userRating'] as num?)?.toInt() ??
           (json['rating'] as num?)?.toInt(),
+      starred: json['starred'] as String?,
     );
   }
 }
@@ -137,6 +147,7 @@ class NavidromeSong {
     this.path,
     this.playCount = 0,
     this.userRating,
+    this.starred,
   });
 
   final String id;
@@ -158,6 +169,9 @@ class NavidromeSong {
   final String? path;
   final int playCount;
   final int? userRating;
+  final String? starred;
+
+  bool get isStarred => starred != null && starred!.isNotEmpty;
 
   factory NavidromeSong.fromJson(Map<String, dynamic> json) {
     return NavidromeSong(
@@ -181,6 +195,7 @@ class NavidromeSong {
       playCount: (json['playCount'] as num?)?.toInt() ?? 0,
       userRating: (json['userRating'] as num?)?.toInt() ??
           (json['rating'] as num?)?.toInt(),
+      starred: json['starred'] as String?,
     );
   }
 }

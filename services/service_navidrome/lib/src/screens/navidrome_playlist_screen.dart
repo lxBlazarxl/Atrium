@@ -40,6 +40,7 @@ class NavidromePlaylistScreen extends ConsumerWidget {
     final ThemeData theme = Theme.of(context);
     final ColorScheme cs = theme.colorScheme;
     int currentRating = song.userRating ?? 0;
+    bool isStarred = song.isStarred;
 
     showModalBottomSheet<void>(
       context: context,
@@ -117,6 +118,47 @@ class NavidromePlaylistScreen extends ConsumerWidget {
                               ),
                             ],
                           ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            isStarred
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            color: isStarred ? Colors.redAccent : null,
+                          ),
+                          tooltip: isStarred
+                              ? 'Remove from favorites'
+                              : 'Add to favorites',
+                          onPressed: () async {
+                            final bool willStar = !isStarred;
+                            setModalState(() {
+                              isStarred = willStar;
+                            });
+                            final NavidromeClient? client = ref
+                                .read(navidromeClientProvider(instance))
+                                .value;
+                            try {
+                              if (willStar) {
+                                await client?.star(id: song.id);
+                              } else {
+                                await client?.unstar(id: song.id);
+                              }
+                              ref.invalidate(
+                                navidromePlaylistDetailProvider(
+                                  (instance, playlistId),
+                                ),
+                              );
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content:
+                                        Text('Failed to update favorite: $e'),
+                                  ),
+                                );
+                              }
+                            }
+                          },
                         ),
                       ],
                     ),

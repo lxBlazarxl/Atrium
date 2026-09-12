@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../navidrome_api.dart';
 import '../navidrome_providers.dart';
+import '../widgets/navidrome_rating_bar.dart';
 import 'navidrome_album_screen.dart';
 
 class NavidromeArtistScreen extends ConsumerWidget {
@@ -30,12 +31,47 @@ class NavidromeArtistScreen extends ConsumerWidget {
         ref.watch(navidromeClientProvider(instance));
     final NavidromeClient? client = clientAsync.value;
 
+    final NavidromeArtist? artist = detailAsync.value?.artist;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
+        actions: <Widget>[
+          if (artist != null)
+            IconButton(
+              icon: Icon(
+                artist.isStarred
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                color: artist.isStarred ? Colors.redAccent : null,
+              ),
+              tooltip: artist.isStarred
+                  ? 'Remove from favorites'
+                  : 'Add to favorites',
+              onPressed: () async {
+                final bool willStar = !artist.isStarred;
+                try {
+                  if (willStar) {
+                    await client?.star(artistId: artist.id);
+                  } else {
+                    await client?.unstar(artistId: artist.id);
+                  }
+                  ref.invalidate(
+                    navidromeArtistDetailProvider((instance, artistId)),
+                  );
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to update favorite: $e')),
+                    );
+                  }
+                }
+              },
+            ),
+        ],
       ),
       body: detailAsync.when(
         data: (NavidromeArtistDetail detail) {
@@ -149,22 +185,92 @@ class NavidromeArtistScreen extends ConsumerWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: cs.secondaryContainer,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '${detail.albums.length} ${detail.albums.length == 1 ? 'Album' : 'Albums'}',
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                  color: cs.onSecondaryContainer,
-                                  fontWeight: FontWeight.bold,
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: <Widget>[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: cs.secondaryContainer,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '${detail.albums.length} ${detail.albums.length == 1 ? 'Album' : 'Albums'}',
+                                    style:
+                                        theme.textTheme.labelMedium?.copyWith(
+                                      color: cs.onSecondaryContainer,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(8),
+                                    onTap: () {
+                                      showNavidromeRatingModal(
+                                        context: context,
+                                        title: 'Rate Artist',
+                                        subtitle: artist.name,
+                                        initialRating: artist.userRating ?? 0,
+                                        onRatingChanged: (int newRating) async {
+                                          await client?.setRating(
+                                            artist.id,
+                                            newRating,
+                                          );
+                                          ref.invalidate(
+                                            navidromeArtistDetailProvider(
+                                              (instance, artistId),
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: cs.secondaryContainer,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: <Widget>[
+                                          Icon(
+                                            (artist.userRating != null &&
+                                                    artist.userRating! > 0)
+                                                ? Icons.star_rounded
+                                                : Icons.star_outline_rounded,
+                                            size: 15,
+                                            color: (artist.userRating != null &&
+                                                    artist.userRating! > 0)
+                                                ? Colors.amber
+                                                : cs.onSecondaryContainer,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            (artist.userRating != null &&
+                                                    artist.userRating! > 0)
+                                                ? '${artist.userRating} / 5'
+                                                : 'Rate',
+                                            style: theme.textTheme.labelMedium
+                                                ?.copyWith(
+                                              color: cs.onSecondaryContainer,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),

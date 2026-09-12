@@ -60,6 +60,7 @@ class NavidromeAlbumScreen extends ConsumerWidget {
     final ThemeData theme = Theme.of(context);
     final ColorScheme cs = theme.colorScheme;
     int currentRating = song.userRating ?? 0;
+    bool isStarred = song.isStarred;
 
     showModalBottomSheet<void>(
       context: context,
@@ -137,6 +138,47 @@ class NavidromeAlbumScreen extends ConsumerWidget {
                               ),
                             ],
                           ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            isStarred
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            color: isStarred ? Colors.redAccent : null,
+                          ),
+                          tooltip: isStarred
+                              ? 'Remove from favorites'
+                              : 'Add to favorites',
+                          onPressed: () async {
+                            final bool willStar = !isStarred;
+                            setModalState(() {
+                              isStarred = willStar;
+                            });
+                            final NavidromeClient? client = ref
+                                .read(navidromeClientProvider(instance))
+                                .value;
+                            try {
+                              if (willStar) {
+                                await client?.star(id: song.id);
+                              } else {
+                                await client?.unstar(id: song.id);
+                              }
+                              ref.invalidate(
+                                navidromeAlbumDetailProvider(
+                                  (instance, albumId),
+                                ),
+                              );
+                            } catch (e) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content:
+                                        Text('Failed to update favorite: $e'),
+                                  ),
+                                );
+                              }
+                            }
+                          },
                         ),
                       ],
                     ),
@@ -270,6 +312,7 @@ class NavidromeAlbumScreen extends ConsumerWidget {
         ref.watch(navidromeClientProvider(instance));
 
     final NavidromeClient? client = clientAsync.value;
+    final NavidromeAlbum? album = detailAsync.value?.album;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -277,6 +320,39 @@ class NavidromeAlbumScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
+        actions: <Widget>[
+          if (album != null)
+            IconButton(
+              icon: Icon(
+                album.isStarred
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                color: album.isStarred ? Colors.redAccent : null,
+              ),
+              tooltip: album.isStarred
+                  ? 'Remove from favorites'
+                  : 'Add to favorites',
+              onPressed: () async {
+                final bool willStar = !album.isStarred;
+                try {
+                  if (willStar) {
+                    await client?.star(albumId: album.id);
+                  } else {
+                    await client?.unstar(albumId: album.id);
+                  }
+                  ref.invalidate(
+                    navidromeAlbumDetailProvider((instance, albumId)),
+                  );
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to update favorite: $e')),
+                    );
+                  }
+                }
+              },
+            ),
+        ],
       ),
       body: detailAsync.when(
         data: (NavidromeAlbumDetail detail) {

@@ -215,6 +215,58 @@ class NavidromeClient {
     }
   }
 
+  Future<void> star({
+    String? id,
+    String? albumId,
+    String? artistId,
+  }) async {
+    final Response<dynamic> response = await dio.get<dynamic>(
+      'rest/star.view',
+      queryParameters: _buildAuthParams(<String, String>{
+        if (id != null) 'id': id,
+        if (albumId != null) 'albumId': albumId,
+        if (artistId != null) 'artistId': artistId,
+      }),
+    );
+    if (response.data is Map<String, dynamic>) {
+      final Map<String, dynamic> data = response.data as Map<String, dynamic>;
+      final dynamic resp = data['subsonic-response'] ?? data;
+      if (resp is Map<String, dynamic> && resp['status'] == 'failed') {
+        final dynamic err = resp['error'];
+        final String msg = (err is Map<String, dynamic>)
+            ? (err['message'] as String? ?? 'Failed to favorite')
+            : 'Failed to favorite';
+        throw Exception(msg);
+      }
+    }
+  }
+
+  Future<void> unstar({
+    String? id,
+    String? albumId,
+    String? artistId,
+  }) async {
+    final Response<dynamic> response = await dio.get<dynamic>(
+      'rest/unstar.view',
+      queryParameters: _buildAuthParams(<String, String>{
+        if (id != null) 'id': id,
+        if (albumId != null) 'albumId': albumId,
+        if (artistId != null) 'artistId': artistId,
+      }),
+    );
+    if (response.data is Map<String, dynamic>) {
+      final Map<String, dynamic> data = response.data as Map<String, dynamic>;
+      final dynamic resp = data['subsonic-response'] ?? data;
+      if (resp is Map<String, dynamic> && resp['status'] == 'failed') {
+        final dynamic err = resp['error'];
+        final String msg = (err is Map<String, dynamic>)
+            ? (err['message'] as String? ?? 'Failed to unfavorite')
+            : 'Failed to unfavorite';
+        throw Exception(msg);
+      }
+    }
+  }
+
   Future<List<NavidromeArtistIndex>> getArtists() async {
     final Response<dynamic> response = await dio.get<dynamic>(
       'rest/getArtists.view',
