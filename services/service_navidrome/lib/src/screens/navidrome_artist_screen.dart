@@ -154,13 +154,13 @@ class NavidromeArtistScreen extends ConsumerWidget {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: ServiceVisuals.accent(ServiceKind.navidrome),
+                                color: cs.secondaryContainer,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 '${detail.albums.length} ${detail.albums.length == 1 ? 'Album' : 'Albums'}',
                                 style: theme.textTheme.labelMedium?.copyWith(
-                                  color: Colors.white,
+                                  color: cs.onSecondaryContainer,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
