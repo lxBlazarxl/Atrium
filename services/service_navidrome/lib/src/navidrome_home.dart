@@ -9,9 +9,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'navidrome_api.dart';
 import 'navidrome_providers.dart';
 import 'screens/navidrome_album_screen.dart';
-import 'screens/navidrome_artist_screen.dart';
 import 'screens/navidrome_playlist_screen.dart';
 import 'screens/navidrome_search_screen.dart';
+import 'widgets/navidrome_artists_tab.dart';
 
 String _formatDuration(int seconds) {
   if (seconds <= 0) return '0:00';
@@ -106,7 +106,7 @@ class _NavidromeHomeState extends ConsumerState<NavidromeHome> {
 
     final List<Widget> tabs = <Widget>[
       _buildAlbumsTab(theme, cs, client),
-      _buildArtistsTab(theme, cs, client),
+      NavidromeArtistsTab(instance: widget.instance),
       _buildPlaylistsTab(theme, cs, client),
     ];
 
@@ -427,122 +427,6 @@ class _NavidromeHomeState extends ConsumerState<NavidromeHome> {
     );
   }
 
-  Widget _buildArtistsTab(
-    ThemeData theme,
-    ColorScheme cs,
-    NavidromeClient? client,
-  ) {
-    final AsyncValue<List<NavidromeArtistIndex>> artistsAsync =
-        ref.watch(navidromeArtistsProvider(widget.instance));
-
-    return EasyRefresh(
-      onRefresh: () async {
-        ref.invalidate(navidromeArtistsProvider(widget.instance));
-      },
-      child: artistsAsync.when(
-        data: (List<NavidromeArtistIndex> indexes) {
-          if (indexes.isEmpty) {
-            return const Center(child: Text('No artists found'));
-          }
-
-          final List<Widget> items = <Widget>[];
-          for (final NavidromeArtistIndex group in indexes) {
-            if (group.artists.isEmpty) continue;
-            items.add(
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Insets.lg,
-                  vertical: Insets.xs,
-                ),
-                color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
-                width: double.infinity,
-                child: Text(
-                  group.name,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: cs.primary,
-                  ),
-                ),
-              ),
-            );
-
-            for (final NavidromeArtist artist in group.artists) {
-              final String cleanId = artist.id.startsWith('ar-')
-                  ? artist.id.substring(3)
-                  : artist.id;
-              final String artistArtId = (artist.coverArt != null &&
-                      artist.coverArt!.startsWith('ar-'))
-                  ? artist.coverArt!
-                  : 'ar-$cleanId';
-              final String? coverUrl = (artist.artistImageUrl != null &&
-                      artist.artistImageUrl!.isNotEmpty)
-                  ? artist.artistImageUrl
-                  : client?.getCoverArtUrl(artistArtId, size: 160);
-
-              items.add(
-                ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: cs.primaryContainer,
-                    child: coverUrl != null
-                        ? ClipOval(
-                            child: AtriumNetworkImage(
-                              imageUrl: coverUrl,
-                              width: 40,
-                              height: 40,
-                              fit: BoxFit.cover,
-                              errorWidget: (_, __, ___) => Icon(
-                                Icons.person_rounded,
-                                size: 24,
-                                color: cs.onPrimaryContainer,
-                              ),
-                            ),
-                          )
-                        : Icon(
-                            Icons.person_rounded,
-                            size: 24,
-                            color: cs.onPrimaryContainer,
-                          ),
-                  ),
-                  title: Text(
-                    artist.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  subtitle: Text(
-                    '${artist.albumCount} ${artist.albumCount == 1 ? 'Album' : 'Albums'}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                    ),
-                  ),
-                  trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => NavidromeArtistScreen(
-                          instance: widget.instance,
-                          artistId: artist.id,
-                          initialArtistName: artist.name,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              );
-            }
-          }
-
-          return ListView(children: items);
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (Object err, _) => Center(
-          child: Text('Failed to load artists: $err'),
-        ),
-      ),
-    );
-  }
 
   Widget _buildPlaylistsTab(
     ThemeData theme,
