@@ -321,7 +321,39 @@ class NavidromeAlbumScreen extends ConsumerWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
         actions: <Widget>[
-          if (album != null)
+          if (album != null) ...<Widget>[
+            IconButton(
+              icon: Icon(
+                (album.userRating != null && album.userRating! > 0)
+                    ? Icons.star_rounded
+                    : Icons.star_outline_rounded,
+                color: (album.userRating != null && album.userRating! > 0)
+                    ? Colors.amber
+                    : null,
+              ),
+              tooltip: (album.userRating != null && album.userRating! > 0)
+                  ? 'Rated ${album.userRating} / 5'
+                  : 'Rate',
+              onPressed: () {
+                showNavidromeRatingModal(
+                  context: context,
+                  title: 'Rate Album',
+                  subtitle: album.name,
+                  initialRating: album.userRating ?? 0,
+                  onRatingChanged: (int newRating) async {
+                    await client?.setRating(
+                      album.id,
+                      newRating,
+                    );
+                    ref.invalidate(
+                      navidromeAlbumDetailProvider(
+                        (instance, albumId),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
             IconButton(
               icon: Icon(
                 album.isStarred
@@ -352,6 +384,7 @@ class NavidromeAlbumScreen extends ConsumerWidget {
                 }
               },
             ),
+          ],
         ],
       ),
       body: detailAsync.when(
@@ -519,39 +552,6 @@ class NavidromeAlbumScreen extends ConsumerWidget {
                                     icon: Icons.schedule_rounded,
                                     label: _formatAlbumDuration(album.duration),
                                   ),
-                                _AlbumBadge(
-                                  icon: (album.userRating != null &&
-                                          album.userRating! > 0)
-                                      ? Icons.star_rounded
-                                      : Icons.star_outline_rounded,
-                                  iconColor: (album.userRating != null &&
-                                          album.userRating! > 0)
-                                      ? Colors.amber
-                                      : null,
-                                  label: (album.userRating != null &&
-                                          album.userRating! > 0)
-                                      ? '${album.userRating} / 5'
-                                      : 'Rate',
-                                  onTap: () {
-                                    showNavidromeRatingModal(
-                                      context: context,
-                                      title: 'Rate Album',
-                                      subtitle: album.name,
-                                      initialRating: album.userRating ?? 0,
-                                      onRatingChanged: (int newRating) async {
-                                        await client?.setRating(
-                                          album.id,
-                                          newRating,
-                                        );
-                                        ref.invalidate(
-                                          navidromeAlbumDetailProvider(
-                                            (instance, albumId),
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  },
-                                ),
                               ],
                             ),
                           ],
@@ -801,21 +801,17 @@ class _AlbumBadge extends StatelessWidget {
   const _AlbumBadge({
     required this.icon,
     required this.label,
-    this.iconColor,
-    this.onTap,
   });
 
   final IconData icon;
   final String label;
-  final Color? iconColor;
-  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme cs = theme.colorScheme;
 
-    final Widget badge = Container(
+    return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 10,
         vertical: 6,
@@ -830,7 +826,7 @@ class _AlbumBadge extends StatelessWidget {
           Icon(
             icon,
             size: 15,
-            color: iconColor ?? cs.onSecondaryContainer,
+            color: cs.onSecondaryContainer,
           ),
           const SizedBox(width: 6),
           Text(
@@ -843,18 +839,6 @@ class _AlbumBadge extends StatelessWidget {
         ],
       ),
     );
-
-    if (onTap != null) {
-      return Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: onTap,
-          child: badge,
-        ),
-      );
-    }
-    return badge;
   }
 }
 

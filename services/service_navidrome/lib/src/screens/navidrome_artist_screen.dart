@@ -40,7 +40,39 @@ class NavidromeArtistScreen extends ConsumerWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
         actions: <Widget>[
-          if (artist != null)
+          if (artist != null) ...<Widget>[
+            IconButton(
+              icon: Icon(
+                (artist.userRating != null && artist.userRating! > 0)
+                    ? Icons.star_rounded
+                    : Icons.star_outline_rounded,
+                color: (artist.userRating != null && artist.userRating! > 0)
+                    ? Colors.amber
+                    : null,
+              ),
+              tooltip: (artist.userRating != null && artist.userRating! > 0)
+                  ? 'Rated ${artist.userRating} / 5'
+                  : 'Rate',
+              onPressed: () {
+                showNavidromeRatingModal(
+                  context: context,
+                  title: 'Rate Artist',
+                  subtitle: artist.name,
+                  initialRating: artist.userRating ?? 0,
+                  onRatingChanged: (int newRating) async {
+                    await client?.setRating(
+                      artist.id,
+                      newRating,
+                    );
+                    ref.invalidate(
+                      navidromeArtistDetailProvider(
+                        (instance, artistId),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
             IconButton(
               icon: Icon(
                 artist.isStarred
@@ -71,6 +103,7 @@ class NavidromeArtistScreen extends ConsumerWidget {
                 }
               },
             ),
+          ],
         ],
       ),
       body: detailAsync.when(
@@ -204,69 +237,6 @@ class NavidromeArtistScreen extends ConsumerWidget {
                                         theme.textTheme.labelMedium?.copyWith(
                                       color: cs.onSecondaryContainer,
                                       fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(8),
-                                    onTap: () {
-                                      showNavidromeRatingModal(
-                                        context: context,
-                                        title: 'Rate Artist',
-                                        subtitle: artist.name,
-                                        initialRating: artist.userRating ?? 0,
-                                        onRatingChanged: (int newRating) async {
-                                          await client?.setRating(
-                                            artist.id,
-                                            newRating,
-                                          );
-                                          ref.invalidate(
-                                            navidromeArtistDetailProvider(
-                                              (instance, artistId),
-                                            ),
-                                          );
-                                        },
-                                      );
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: cs.secondaryContainer,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: <Widget>[
-                                          Icon(
-                                            (artist.userRating != null &&
-                                                    artist.userRating! > 0)
-                                                ? Icons.star_rounded
-                                                : Icons.star_outline_rounded,
-                                            size: 15,
-                                            color: (artist.userRating != null &&
-                                                    artist.userRating! > 0)
-                                                ? Colors.amber
-                                                : cs.onSecondaryContainer,
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            (artist.userRating != null &&
-                                                    artist.userRating! > 0)
-                                                ? '${artist.userRating} / 5'
-                                                : 'Rate',
-                                            style: theme.textTheme.labelMedium
-                                                ?.copyWith(
-                                              color: cs.onSecondaryContainer,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
                                     ),
                                   ),
                                 ),

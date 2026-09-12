@@ -72,6 +72,10 @@ void main() {
 
     await tester.pumpAndSettle();
 
+    // Verify top right actions for Rate and Favorite
+    expect(find.byTooltip('Rate'), findsOneWidget);
+    expect(find.byTooltip('Add to favorites'), findsOneWidget);
+
     // Verify artist name and album badge rendered on banner
     expect(find.text('Daft Punk'), findsOneWidget);
     expect(find.text('2 Albums'), findsOneWidget);
