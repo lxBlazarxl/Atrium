@@ -19,6 +19,17 @@ String _formatDuration(int seconds) {
   return '$m:${s.toString().padLeft(2, '0')}';
 }
 
+String _formatAlbumDuration(int seconds) {
+  if (seconds <= 0) return '';
+  final int m = seconds ~/ 60;
+  if (m >= 60) {
+    final int h = m ~/ 60;
+    final int remM = m % 60;
+    return remM > 0 ? '$h hr $remM min' : '$h hr';
+  }
+  return '$m min';
+}
+
 String _formatFileSize(int? bytes) {
   if (bytes == null || bytes <= 0) return '';
   if (bytes < 1024 * 1024) {
@@ -184,18 +195,6 @@ class NavidromeAlbumScreen extends ConsumerWidget {
           final String? coverUrl =
               client?.getCoverArtUrl(album.coverArt, size: 1000);
           final double bannerHeight = MediaQuery.sizeOf(context).height * 0.48;
-          final TextStyle metaStyle = theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.white.withValues(alpha: 0.85),
-                fontWeight: FontWeight.w500,
-                shadows: const <Shadow>[
-                  Shadow(
-                    color: Colors.black87,
-                    offset: Offset(0, 1),
-                    blurRadius: 4,
-                  ),
-                ],
-              ) ??
-              const TextStyle(color: Colors.white70);
 
           return CustomScrollView(
             slivers: <Widget>[
@@ -329,36 +328,32 @@ class NavidromeAlbumScreen extends ConsumerWidget {
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 8),
                             Wrap(
-                              crossAxisAlignment: WrapCrossAlignment.center,
+                              spacing: 6,
+                              runSpacing: 6,
                               children: <Widget>[
-                                if (album.year != null) ...<Widget>[
-                                  Text(
-                                    '${album.year}',
-                                    style: metaStyle,
+                                if (album.year != null)
+                                  _AlbumBadge(
+                                    icon: Icons.calendar_today_rounded,
+                                    label: '${album.year}',
                                   ),
-                                  _buildBullet(metaStyle),
-                                ],
                                 if (album.genre != null &&
-                                    album.genre!.isNotEmpty) ...<Widget>[
-                                  Text(
-                                    album.genre!,
-                                    style: metaStyle,
+                                    album.genre!.isNotEmpty)
+                                  _AlbumBadge(
+                                    icon: Icons.music_note_rounded,
+                                    label: album.genre!,
                                   ),
-                                  _buildBullet(metaStyle),
-                                ],
-                                Text(
-                                  '${detail.songs.length} ${detail.songs.length == 1 ? 'Track' : 'Tracks'}',
-                                  style: metaStyle,
+                                _AlbumBadge(
+                                  icon: Icons.queue_music_rounded,
+                                  label:
+                                      '${detail.songs.length} ${detail.songs.length == 1 ? 'Track' : 'Tracks'}',
                                 ),
-                                if (album.duration > 0) ...<Widget>[
-                                  _buildBullet(metaStyle),
-                                  Text(
-                                    _formatDuration(album.duration),
-                                    style: metaStyle,
+                                if (album.duration > 0)
+                                  _AlbumBadge(
+                                    icon: Icons.schedule_rounded,
+                                    label: _formatAlbumDuration(album.duration),
                                   ),
-                                ],
                               ],
                             ),
                           ],
@@ -551,16 +546,49 @@ class NavidromeAlbumScreen extends ConsumerWidget {
   }
 }
 
-Widget _buildBullet(TextStyle style) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 6),
-    child: Text(
-      '•',
-      style: style.copyWith(
-        color: Colors.white.withValues(alpha: 0.5),
+class _AlbumBadge extends StatelessWidget {
+  const _AlbumBadge({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme cs = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 10,
+        vertical: 6,
       ),
-    ),
-  );
+      decoration: BoxDecoration(
+        color: cs.secondaryContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            icon,
+            size: 15,
+            color: cs.onSecondaryContainer,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: cs.onSecondaryContainer,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _DetailTile extends StatelessWidget {
