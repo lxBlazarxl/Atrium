@@ -71,8 +71,8 @@ void main() {
     expect(find.text('15 Albums'), findsOneWidget);
 
     // Verify Alphabetical Section Headers exist
-    expect(find.text('D'), findsWidgets);
-    expect(find.text('M'), findsWidgets);
+    expect(find.text('D'), findsOneWidget);
+    expect(find.text('M'), findsOneWidget);
 
     // Verify Artist cards in list
     expect(find.text('Daft Punk'), findsOneWidget);

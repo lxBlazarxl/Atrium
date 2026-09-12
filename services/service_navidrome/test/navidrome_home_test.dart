@@ -139,7 +139,7 @@ void main() {
     // Switch to Artists destination
     await tester.tap(find.text('Artists'));
     await tester.pumpAndSettle();
-    expect(find.text('D'), findsWidgets);
+    expect(find.text('D'), findsOneWidget);
     expect(find.text('4 Albums'), findsWidgets);
 
     // Switch to Playlists destination

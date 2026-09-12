@@ -1,17 +1,13 @@
-import 'dart:async';
-
 import 'package:core_models/core_models.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../navidrome_api.dart';
 import '../navidrome_providers.dart';
 import '../screens/navidrome_artist_screen.dart';
 
-/// Modern, non-generic Artists tab featuring alphabetical section headers,
-/// fast-scroll alphabet scrubber bar, floating letter indicator bubble,
+/// Modern Artists tab featuring alphabetical section headers with gradient badges,
 /// M3 metadata pills, and seamless List / Grid view toggling.
 class NavidromeArtistsTab extends ConsumerStatefulWidget {
   const NavidromeArtistsTab({
@@ -29,53 +25,11 @@ class NavidromeArtistsTab extends ConsumerStatefulWidget {
 class _NavidromeArtistsTabState extends ConsumerState<NavidromeArtistsTab> {
   final ScrollController _scrollController = ScrollController();
   bool _isGridView = false;
-  String? _activeLetter;
-  bool _showBubble = false;
-  Timer? _bubbleTimer;
-  double _railHeight = 0;
 
   @override
   void dispose() {
-    _bubbleTimer?.cancel();
     _scrollController.dispose();
     super.dispose();
-  }
-
-  void _onScrub(
-    double dy,
-    List<String> letters,
-    Map<String, double> offsets,
-  ) {
-    if (letters.isEmpty || _railHeight <= 0) return;
-    final double letterHeight = _railHeight / letters.length;
-    final int index = (dy / letterHeight).floor().clamp(0, letters.length - 1);
-    final String letter = letters[index];
-
-    if (letter != _activeLetter) {
-      HapticFeedback.selectionClick();
-      setState(() {
-        _activeLetter = letter;
-        _showBubble = true;
-      });
-
-      final double? targetOffset = offsets[letter];
-      if (targetOffset != null && _scrollController.hasClients) {
-        final double maxScroll = _scrollController.position.maxScrollExtent;
-        _scrollController.jumpTo(targetOffset.clamp(0.0, maxScroll));
-      }
-    }
-    _bubbleTimer?.cancel();
-  }
-
-  void _endScrub([dynamic _]) {
-    _bubbleTimer?.cancel();
-    _bubbleTimer = Timer(const Duration(milliseconds: 700), () {
-      if (mounted) {
-        setState(() {
-          _showBubble = false;
-        });
-      }
-    });
   }
 
   @override
@@ -94,7 +48,7 @@ class _NavidromeArtistsTabState extends ConsumerState<NavidromeArtistsTab> {
       child: artistsAsync.when(
         data: (List<NavidromeArtistIndex> indexes) {
           final List<NavidromeArtistIndex> nonEmptyGroups =
-              indexes.where((g) => g.artists.isNotEmpty).toList();
+              indexes.where((NavidromeArtistIndex g) => g.artists.isNotEmpty).toList();
 
           if (nonEmptyGroups.isEmpty) {
             return const Center(child: Text('No artists found'));
@@ -114,204 +68,74 @@ class _NavidromeArtistsTabState extends ConsumerState<NavidromeArtistsTab> {
                 ),
           );
 
-          final List<String> letters =
-              nonEmptyGroups.map((NavidromeArtistIndex g) => g.name).toList();
-
-          // Calculate approximate scroll offsets for each letter group
-          const double topToolbarHeight = 48.0;
-          const double sectionHeaderHeight = 48.0;
-          const double listRowHeight = 66.0;
-
-          final Map<String, double> offsets = <String, double>{};
-          double currentOffset = topToolbarHeight;
-
-          for (final NavidromeArtistIndex group in nonEmptyGroups) {
-            offsets[group.name] = currentOffset;
-            if (!_isGridView) {
-              currentOffset +=
-                  sectionHeaderHeight + (group.artists.length * listRowHeight);
-            } else {
-              final int rows = (group.artists.length / 3).ceil();
-              currentOffset += sectionHeaderHeight + (rows * 140.0);
-            }
-          }
-
-          return Stack(
-            children: <Widget>[
-              CustomScrollView(
-                controller: _scrollController,
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: <Widget>[
-                  // Top Toolbar: metrics + view mode switch
-                  SliverToBoxAdapter(
-                    child: _buildTopToolbar(
-                      theme,
-                      cs,
-                      totalArtists,
-                      totalAlbums,
-                    ),
-                  ),
-
-                  // Content Groups (List or Grid)
-                  for (final NavidromeArtistIndex group in nonEmptyGroups) ...<Widget>[
-                    SliverToBoxAdapter(
-                      child: _buildSectionHeader(theme, cs, group),
-                    ),
-                    if (!_isGridView)
-                      SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (BuildContext ctx, int idx) {
-                            return _buildArtistRow(
-                              ctx,
-                              theme,
-                              cs,
-                              group.artists[idx],
-                              client,
-                            );
-                          },
-                          childCount: group.artists.length,
-                        ),
-                      )
-                    else
-                      SliverPadding(
-                        padding: const EdgeInsets.only(
-                          left: Insets.lg,
-                          right: 36,
-                          top: Insets.xs,
-                          bottom: Insets.sm,
-                        ),
-                        sliver: SliverGrid(
-                          gridDelegate:
-                              const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 130,
-                            childAspectRatio: 0.74,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 12,
-                          ),
-                          delegate: SliverChildBuilderDelegate(
-                            (BuildContext ctx, int idx) {
-                              return _buildArtistGridCard(
-                                ctx,
-                                theme,
-                                cs,
-                                group.artists[idx],
-                                client,
-                              );
-                            },
-                            childCount: group.artists.length,
-                          ),
-                        ),
-                      ),
-                  ],
-
-                  // Bottom padding clearance for navigation bar
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: 80),
-                  ),
-                ],
-              ),
-
-              // Alphabet Fast-Scroll Scrubber Rail
-              Positioned(
-                right: 4,
-                top: 48,
-                bottom: 84,
-                child: Center(
-                  child: LayoutBuilder(
-                    builder:
-                        (BuildContext context, BoxConstraints constraints) {
-                      _railHeight = constraints.maxHeight;
-                      return GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onVerticalDragDown: (DragDownDetails details) =>
-                            _onScrub(
-                          details.localPosition.dy,
-                          letters,
-                          offsets,
-                        ),
-                        onVerticalDragUpdate: (DragUpdateDetails details) =>
-                            _onScrub(
-                          details.localPosition.dy,
-                          letters,
-                          offsets,
-                        ),
-                        onVerticalDragEnd: _endScrub,
-                        onVerticalDragCancel: _endScrub,
-                        onTapUp: _endScrub,
-                        child: Container(
-                          width: 22,
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          decoration: BoxDecoration(
-                            color: cs.surfaceContainerHighest.withValues(
-                              alpha: 0.45,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: letters.map((String letter) {
-                              final bool isSelected = _activeLetter == letter;
-                              return Text(
-                                letter,
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  fontSize: 10,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w900
-                                      : FontWeight.w600,
-                                  color: isSelected
-                                      ? cs.primary
-                                      : cs.onSurfaceVariant,
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+          return CustomScrollView(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: <Widget>[
+              // Top Toolbar: metrics + view mode switch
+              SliverToBoxAdapter(
+                child: _buildTopToolbar(
+                  theme,
+                  cs,
+                  totalArtists,
+                  totalAlbums,
                 ),
               ),
 
-              // Floating Active Letter Indicator Bubble
-              if (_showBubble && _activeLetter != null)
-                Center(
-                  child: IgnorePointer(
-                    child: AnimatedOpacity(
-                      opacity: _showBubble ? 1.0 : 0.0,
-                      duration: const Duration(milliseconds: 150),
-                      child: Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: <Color>[
-                              cs.primary,
-                              cs.primaryContainer,
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          shape: BoxShape.circle,
-                          boxShadow: <BoxShadow>[
-                            BoxShadow(
-                              color: cs.primary.withValues(alpha: 0.3),
-                              blurRadius: 16,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          _activeLetter!,
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            color: cs.onPrimary,
-                          ),
-                        ),
+              // Content Groups (List or Grid)
+              for (final NavidromeArtistIndex group in nonEmptyGroups) ...<Widget>[
+                SliverToBoxAdapter(
+                  child: _buildSectionHeader(theme, cs, group),
+                ),
+                if (!_isGridView)
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (BuildContext ctx, int idx) {
+                        return _buildArtistRow(
+                          ctx,
+                          theme,
+                          cs,
+                          group.artists[idx],
+                          client,
+                        );
+                      },
+                      childCount: group.artists.length,
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Insets.lg,
+                      vertical: Insets.xs,
+                    ),
+                    sliver: SliverGrid(
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 130,
+                        childAspectRatio: 0.74,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 12,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        (BuildContext ctx, int idx) {
+                          return _buildArtistGridCard(
+                            ctx,
+                            theme,
+                            cs,
+                            group.artists[idx],
+                            client,
+                          );
+                        },
+                        childCount: group.artists.length,
                       ),
                     ),
                   ),
-                ),
+              ],
+
+              // Bottom padding clearance for navigation bar
+              const SliverToBoxAdapter(
+                child: SizedBox(height: 80),
+              ),
             ],
           );
         },
@@ -330,11 +154,9 @@ class _NavidromeArtistsTabState extends ConsumerState<NavidromeArtistsTab> {
     int totalAlbums,
   ) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        Insets.lg,
-        Insets.sm,
-        34,
-        Insets.xs,
+      padding: const EdgeInsets.symmetric(
+        horizontal: Insets.lg,
+        vertical: Insets.sm,
       ),
       child: Row(
         children: <Widget>[
@@ -423,11 +245,11 @@ class _NavidromeArtistsTabState extends ConsumerState<NavidromeArtistsTab> {
     NavidromeArtistIndex group,
   ) {
     return Padding(
-      padding: const EdgeInsets.only(
-        left: Insets.lg,
-        right: 36,
-        top: Insets.md,
-        bottom: Insets.xs,
+      padding: const EdgeInsets.fromLTRB(
+        Insets.lg,
+        Insets.md,
+        Insets.lg,
+        Insets.xs,
       ),
       child: Row(
         children: <Widget>[
@@ -508,11 +330,9 @@ class _NavidromeArtistsTabState extends ConsumerState<NavidromeArtistsTab> {
             : client?.getCoverArtUrl(artistArtId, size: 160);
 
     return Padding(
-      padding: const EdgeInsets.only(
-        left: Insets.md,
-        right: 36,
-        top: 2,
-        bottom: 2,
+      padding: const EdgeInsets.symmetric(
+        horizontal: Insets.md,
+        vertical: 2,
       ),
       child: Material(
         color: Colors.transparent,
