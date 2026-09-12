@@ -239,7 +239,20 @@ class NavidromeSearchResults extends ConsumerWidget {
                   },
                 ),
               ),
-              const SizedBox(height: Insets.lg),
+              if (result.albums.isNotEmpty || result.songs.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Insets.lg,
+                    vertical: Insets.md,
+                  ),
+                  child: Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: cs.outlineVariant.withValues(alpha: 0.35),
+                  ),
+                )
+              else
+                const SizedBox(height: Insets.md),
             ],
             if (result.albums.isNotEmpty) ...<Widget>[
               Padding(
@@ -331,7 +344,20 @@ class NavidromeSearchResults extends ConsumerWidget {
                   },
                 ),
               ),
-              const SizedBox(height: Insets.lg),
+              if (result.songs.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: Insets.lg,
+                    vertical: Insets.md,
+                  ),
+                  child: Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: cs.outlineVariant.withValues(alpha: 0.35),
+                  ),
+                )
+              else
+                const SizedBox(height: Insets.md),
             ],
             if (result.songs.isNotEmpty) ...<Widget>[
               Padding(
