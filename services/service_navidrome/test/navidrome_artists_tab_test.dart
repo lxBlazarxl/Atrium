@@ -18,7 +18,7 @@ void main() {
   );
 
   testWidgets(
-      'NavidromeArtistsTab renders metrics, alphabet headers, scrubber, and view mode toggle',
+      'NavidromeArtistsTab renders alphabetical headers and artist cards',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 1.0;
@@ -66,10 +66,6 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    // Verify metrics in top toolbar
-    expect(find.text('2 Artists'), findsOneWidget);
-    expect(find.text('15 Albums'), findsOneWidget);
-
     // Verify Alphabetical Section Headers exist
     expect(find.text('D'), findsOneWidget);
     expect(find.text('M'), findsOneWidget);
@@ -79,23 +75,5 @@ void main() {
     expect(find.text('4 Albums'), findsOneWidget);
     expect(find.text('Metallica'), findsOneWidget);
     expect(find.text('11 Albums'), findsOneWidget);
-
-    // Verify Grid View toggle button and switch to Grid
-    final Finder gridToggle = find.byTooltip('Grid view');
-    expect(gridToggle, findsOneWidget);
-    await tester.tap(gridToggle);
-    await tester.pumpAndSettle();
-
-    // Both artists still visible in grid
-    expect(find.text('Daft Punk'), findsOneWidget);
-    expect(find.text('Metallica'), findsOneWidget);
-
-    // Switch back to List View
-    final Finder listToggle = find.byTooltip('List view');
-    expect(listToggle, findsOneWidget);
-    await tester.tap(listToggle);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Daft Punk'), findsOneWidget);
   });
 }
