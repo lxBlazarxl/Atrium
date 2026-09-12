@@ -184,13 +184,6 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
                   tooltip: 'Search',
                   icon: const Icon(Icons.search),
                   onPressed: () {
-                    if (instance.kind == ServiceKind.navidrome) {
-                      pushScreen<void>(
-                        context,
-                        NavidromeSearchScreen(instance: instance),
-                      );
-                      return;
-                    }
                     showSearch<void>(
                       context: context,
                       // Root navigator: the search page is pushed imperatively,
@@ -204,6 +197,8 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
                           PlexSearchDelegate(instance: instance),
                         ServiceKind.seerr =>
                           SeerrSearchDelegate(instance: instance),
+                        ServiceKind.navidrome =>
+                          NavidromeSearchDelegate(instance: instance),
                         _ => JellyfinSearchDelegate(instance: instance),
                       },
                     );

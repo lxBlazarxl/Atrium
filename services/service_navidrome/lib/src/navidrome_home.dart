@@ -145,11 +145,10 @@ class _NavidromeHomeState extends ConsumerState<NavidromeHome> {
             icon: const Icon(Icons.search_rounded),
             tooltip: 'Search library',
             onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) =>
-                      NavidromeSearchScreen(instance: widget.instance),
-                ),
+              showSearch<void>(
+                context: context,
+                useRootNavigator: true,
+                delegate: NavidromeSearchDelegate(instance: widget.instance),
               );
             },
           ),
