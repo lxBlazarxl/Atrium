@@ -1,21 +1,69 @@
 import 'package:core_models/core_models.dart';
+import 'package:core_router/core_router.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'navidrome_api.dart';
 import 'navidrome_providers.dart';
+import 'screens/navidrome_album_screen.dart';
+import 'screens/navidrome_artist_screen.dart';
+import 'screens/navidrome_playlist_screen.dart';
+import 'screens/navidrome_search_screen.dart';
+
+String _formatDuration(int seconds) {
+  if (seconds <= 0) return '0:00';
+  final int m = seconds ~/ 60;
+  final int s = seconds % 60;
+  if (m >= 60) {
+    final int h = m ~/ 60;
+    final int remM = m % 60;
+    return '$h:${remM.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+  return '$m:${s.toString().padLeft(2, '0')}';
+}
+
+/// Filter categories for the Albums tab.
+enum NavidromeAlbumCategory {
+  all('All', 'alphabeticalByName'),
+  random('Random', 'random'),
+  favorites('Favorites', 'starred'),
+  topRated('Top Rated', 'highest'),
+  recentlyAdded('Recently Added', 'newest'),
+  recentlyPlayed('Recently Played', 'recent'),
+  mostPlayed('Most Played', 'frequent');
+
+  const NavidromeAlbumCategory(this.label, this.type);
+  final String label;
+  final String type;
+}
 
 /// Main home screen for Navidrome music server instances.
-class NavidromeHome extends ConsumerWidget {
-  const NavidromeHome({required this.instance, super.key});
+class NavidromeHome extends ConsumerStatefulWidget {
+  const NavidromeHome({
+    required this.instance,
+    this.onEdit,
+    this.drawer,
+    super.key,
+  });
 
   final Instance instance;
+  final VoidCallback? onEdit;
+  final Widget? drawer;
+
+  @override
+  ConsumerState<NavidromeHome> createState() => _NavidromeHomeState();
+}
+
+class _NavidromeHomeState extends ConsumerState<NavidromeHome> {
+  String _selectedAlbumCategory = NavidromeAlbumCategory.all.type;
 
   Future<void> _launchWeb(BuildContext context) async {
-    final String url =
-        instance.localUrl.isNotEmpty ? instance.localUrl : instance.externalUrl;
+    final String url = widget.instance.localUrl.isNotEmpty
+        ? widget.instance.localUrl
+        : widget.instance.externalUrl;
     if (url.isEmpty) return;
     final Uri? uri = Uri.tryParse(url);
     if (uri != null) {
@@ -23,447 +71,565 @@ class NavidromeHome extends ConsumerWidget {
     }
   }
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme cs = theme.colorScheme;
-    final Color accent = ServiceVisuals.accent(ServiceKind.navidrome);
-
-    final AsyncValue<NavidromeServerInfo> infoAsync =
-        ref.watch(navidromeServerInfoProvider(instance));
-    final AsyncValue<NavidromeScanStatus> scanAsync =
-        ref.watch(navidromeScanStatusProvider(instance));
-
-    return EasyRefresh(
-      header: const ClassicHeader(
-        dragText: 'Pull to refresh',
-        armedText: 'Release ready',
-        readyText: 'Refreshing...',
-        processingText: 'Refreshing...',
-        processedText: 'Succeeded',
-        failedText: 'Failed',
-        messageText: 'Last updated at %T',
-      ),
-      onRefresh: () async {
-        ref.invalidate(navidromeServerInfoProvider(instance));
-        ref.invalidate(navidromeScanStatusProvider(instance));
-      },
-      child: ListView(
-        padding: Insets.page,
-        children: <Widget>[
-          // Hero banner card
-          _HeroCard(
-            instance: instance,
-            accent: accent,
-            infoAsync: infoAsync,
-            onOpenWeb: () => _launchWeb(context),
-          ),
-          const SizedBox(height: Insets.md),
-
-          // Library & Server stats
-          Text(
-            'Server Overview',
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: Insets.sm),
-
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: _StatCard(
-                  title: 'Subsonic API',
-                  value: infoAsync.maybeWhen(
-                    data: (info) => 'v${info.subsonicVersion}',
-                    orElse: () => 'v1.16.1',
-                  ),
-                  subtitle: infoAsync.maybeWhen(
-                    data: (info) => info.serverVersion.isNotEmpty
-                        ? 'Navidrome ${info.serverVersion}'
-                        : 'Connected',
-                    orElse: () => 'Subsonic compatible',
-                  ),
-                  icon: Icons.api_rounded,
-                  accent: accent,
-                ),
-              ),
-              const SizedBox(width: Insets.sm),
-              Expanded(
-                child: _StatCard(
-                  title: 'Library Scan',
-                  value: scanAsync.maybeWhen(
-                    data: (scan) =>
-                        scan.scanning ? 'Scanning...' : '${scan.count} items',
-                    orElse: () => 'Ready',
-                  ),
-                  subtitle: scanAsync.maybeWhen(
-                    data: (scan) =>
-                        scan.scanning ? 'Updating database' : 'Up to date',
-                    orElse: () => 'Subsonic scanner',
-                  ),
-                  icon: Icons.sync_rounded,
-                  accent: cs.secondary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Insets.md),
-
-          // Connection info card
-          Card(
-            elevation: 0,
-            color: cs.surfaceContainerLow,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(
-                color: cs.outlineVariant.withValues(alpha: 0.4),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(Insets.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Row(
-                    children: <Widget>[
-                      Icon(Icons.link_rounded, size: 20, color: cs.primary),
-                      const SizedBox(width: Insets.xs),
-                      Text(
-                        'Connection Details',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: Insets.sm),
-                  _InfoRow(
-                    label: 'Endpoint',
-                    value: instance.localUrl.isNotEmpty
-                        ? instance.localUrl
-                        : (instance.externalUrl.isNotEmpty
-                            ? instance.externalUrl
-                            : 'Not configured'),
-                  ),
-                  const SizedBox(height: Insets.xs),
-                  _InfoRow(
-                    label: 'Auth mode',
-                    value: switch (instance.auth) {
-                      InstanceAuthUserPass(:final String username) =>
-                        username.isNotEmpty
-                            ? 'User: $username'
-                            : 'Username & password',
-                      _ => 'Credentials',
-                    },
-                  ),
-                  const SizedBox(height: Insets.xs),
-                  _InfoRow(
-                    label: 'Status',
-                    value: infoAsync.maybeWhen(
-                      data: (info) => 'Online (${info.status})',
-                      error: (_, __) => 'Connection error',
-                      loading: () => 'Connecting...',
-                      orElse: () => 'Ready',
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: Insets.md),
-
-          // Future player card
-          Card(
-            elevation: 0,
-            color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(
-                color: cs.outlineVariant.withValues(alpha: 0.3),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(Insets.md),
-              child: Row(
-                children: <Widget>[
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.headphones_rounded,
-                      color: accent,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: Insets.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text(
-                          'Music Player & Library Browser',
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Native music streaming, albums, and playlists are coming in an upcoming release.',
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: cs.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  Future<void> _triggerScan(BuildContext context) async {
+    try {
+      final NavidromeClient client =
+          await ref.read(navidromeClientProvider(widget.instance).future);
+      await client.startScan();
+      ref.invalidate(navidromeScanStatusProvider(widget.instance));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Library scan started')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to start scan: $e')),
+        );
+      }
+    }
   }
-}
-
-class _HeroCard extends StatelessWidget {
-  const _HeroCard({
-    required this.instance,
-    required this.accent,
-    required this.infoAsync,
-    required this.onOpenWeb,
-  });
-
-  final Instance instance;
-  final Color accent;
-  final AsyncValue<NavidromeServerInfo> infoAsync;
-  final VoidCallback onOpenWeb;
 
   @override
   Widget build(BuildContext context) {
+    final int currentIndex =
+        ref.watch(navidromeActiveTabIndexProvider(widget.instance));
+    final bool isNavbarVisible =
+        ref.watch(navidromeBottomNavVisibleProvider(widget.instance));
+
     final ThemeData theme = Theme.of(context);
     final ColorScheme cs = theme.colorScheme;
+    final AsyncValue<NavidromeClient> clientAsync =
+        ref.watch(navidromeClientProvider(widget.instance));
+    final NavidromeClient? client = clientAsync.value;
 
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            accent.withValues(alpha: 0.22),
-            accent.withValues(alpha: 0.06),
+    final List<Widget> tabs = <Widget>[
+      _buildAlbumsTab(theme, cs, client),
+      _buildArtistsTab(theme, cs, client),
+      _buildPlaylistsTab(theme, cs, client),
+    ];
+
+    return Scaffold(
+      drawerEdgeDragWidth: widget.drawer != null
+          ? MediaQuery.sizeOf(context).width * 0.15
+          : null,
+      drawer: widget.drawer,
+      appBar: AppBar(
+        leading: widget.drawer != null
+            ? Builder(
+                builder: (BuildContext context) {
+                  return IconButton(
+                    icon: const Icon(Icons.menu),
+                    tooltip: 'Open navigation menu',
+                    onPressed: () => Scaffold.of(context).openDrawer(),
+                  );
+                },
+              )
+            : null,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Flexible(
+              child: Text(
+                widget.instance.name,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            const BetaBadge(),
           ],
         ),
-        border: Border.all(
-          color: accent.withValues(alpha: 0.35),
-        ),
-      ),
-      padding: const EdgeInsets.all(Insets.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.search_rounded),
+            tooltip: 'Search library',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) =>
+                      NavidromeSearchScreen(instance: widget.instance),
                 ),
-                child: Icon(
-                  Icons.queue_music_rounded,
-                  color: accent,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: Insets.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      instance.name,
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Navidrome Music Server',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              infoAsync.maybeWhen(
-                data: (info) => Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: Insets.sm,
-                    vertical: Insets.xxs,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.green.withValues(alpha: 0.4),
-                    ),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      Icon(
-                        Icons.check_circle_rounded,
-                        size: 14,
-                        color: Colors.green,
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        'Online',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                loading: () => const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                orElse: () => const SizedBox.shrink(),
-              ),
-            ],
+              );
+            },
           ),
-          const SizedBox(height: Insets.md),
-          FilledButton.tonalIcon(
-            onPressed: onOpenWeb,
-            icon: const Icon(Icons.open_in_new_rounded, size: 18),
-            label: const Text('Open Web Player'),
+          IconButton(
+            icon: const Icon(Icons.sync_rounded),
+            tooltip: 'Scan library',
+            onPressed: () => _triggerScan(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.open_in_new_rounded),
+            tooltip: 'Open Web UI',
+            onPressed: () => _launchWeb(context),
           ),
         ],
       ),
-    );
-  }
-}
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (ScrollNotification notification) {
+          if (notification.metrics.axis == Axis.vertical) {
+            if (notification is ScrollUpdateNotification) {
+              final double pixels = notification.metrics.pixels;
+              if (pixels > 10.0) {
+                final double maxExtent = notification.metrics.maxScrollExtent;
+                final bool isAtBottom = pixels >= maxExtent - 10.0;
+                final double? delta = notification.scrollDelta;
+                if (delta != null && delta != 0.0) {
+                  final bool isScrollingDown = delta > 0.0;
+                  final bool currentVisible = ref.read(
+                    navidromeBottomNavVisibleProvider(widget.instance),
+                  );
+                  if (isScrollingDown && currentVisible) {
+                    ref
+                        .read(
+                          navidromeBottomNavVisibleProvider(widget.instance)
+                              .notifier,
+                        )
+                        .state = false;
+                  } else if (!isScrollingDown &&
+                      !currentVisible &&
+                      !isAtBottom) {
+                    ref
+                        .read(
+                          navidromeBottomNavVisibleProvider(widget.instance)
+                              .notifier,
+                        )
+                        .state = true;
+                  }
+                }
+              } else if (pixels <= 0.0) {
+                final bool currentVisible = ref.read(
+                  navidromeBottomNavVisibleProvider(widget.instance),
+                );
+                if (!currentVisible) {
+                  ref
+                      .read(
+                        navidromeBottomNavVisibleProvider(widget.instance)
+                            .notifier,
+                      )
+                      .state = true;
+                }
+              }
+            }
+          }
+          return false;
+        },
+        child: Builder(
+          builder: (BuildContext context) {
+            return PopScope<Object?>(
+              canPop: false,
+              onPopInvokedWithResult: (bool didPop, Object? result) {
+                if (didPop) return;
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.subtitle,
-    required this.icon,
-    required this.accent,
-  });
+                if (Scaffold.of(context).isDrawerOpen) {
+                  Navigator.of(context).pop();
+                  return;
+                }
 
-  final String title;
-  final String value;
-  final String subtitle;
-  final IconData icon;
-  final Color accent;
+                if (ref.read(
+                      navidromeActiveTabIndexProvider(widget.instance),
+                    ) !=
+                    0) {
+                  ref
+                      .read(
+                        navidromeActiveTabIndexProvider(widget.instance)
+                            .notifier,
+                      )
+                      .state = 0;
+                  return;
+                }
 
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme cs = theme.colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.all(Insets.md),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: cs.outlineVariant.withValues(alpha: 0.3),
+                GoRouter.of(context).go(AtriumRoutes.dashboard);
+              },
+              child: IndexedStack(
+                index: currentIndex,
+                children: tabs,
+              ),
+            );
+          },
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Icon(icon, size: 18, color: accent),
-              const SizedBox(width: Insets.xs),
-              Expanded(
-                child: Text(
-                  title,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+      bottomNavigationBar: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        height: isNavbarVisible ? 80 : 0,
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          child: SizedBox(
+            height: 80,
+            child: NavigationBar(
+              selectedIndex: currentIndex,
+              onDestinationSelected: (int index) {
+                ref
+                    .read(
+                      navidromeActiveTabIndexProvider(widget.instance).notifier,
+                    )
+                    .state = index;
+              },
+              destinations: const <NavigationDestination>[
+                NavigationDestination(
+                  icon: Icon(Icons.album_outlined),
+                  selectedIcon: Icon(Icons.album),
+                  label: 'Albums',
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Insets.xs),
-          Text(
-            value,
-            style: theme.textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
+                NavigationDestination(
+                  icon: Icon(Icons.person_outlined),
+                  selectedIcon: Icon(Icons.person),
+                  label: 'Artists',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.queue_music_outlined),
+                  selectedIcon: Icon(Icons.queue_music),
+                  label: 'Playlists',
+                ),
+              ],
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: cs.onSurfaceVariant,
-              fontSize: 11,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+        ),
       ),
     );
   }
-}
 
-class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, required this.value});
+  Widget _buildAlbumsTab(
+    ThemeData theme,
+    ColorScheme cs,
+    NavidromeClient? client,
+  ) {
+    final AsyncValue<List<NavidromeAlbum>> albumsAsync = ref.watch(
+      navidromeAlbumsProvider((widget.instance, _selectedAlbumCategory)),
+    );
 
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme cs = theme.colorScheme;
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
       children: <Widget>[
-        Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: cs.onSurfaceVariant,
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(
+            horizontal: Insets.md,
+            vertical: Insets.sm,
+          ),
+          child: Row(
+            children: NavidromeAlbumCategory.values.map((cat) {
+              return Padding(
+                padding: const EdgeInsets.only(right: Insets.xs),
+                child: ChoiceChip(
+                  label: Text(cat.label),
+                  selected: _selectedAlbumCategory == cat.type,
+                  onSelected: (bool selected) {
+                    if (selected) {
+                      setState(() => _selectedAlbumCategory = cat.type);
+                    }
+                  },
+                ),
+              );
+            }).toList(),
           ),
         ),
-        Flexible(
-          child: Text(
-            value,
-            style: theme.textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w600,
+        const Divider(height: 1),
+        Expanded(
+          child: EasyRefresh(
+            onRefresh: () async {
+              ref.invalidate(
+                navidromeAlbumsProvider(
+                  (widget.instance, _selectedAlbumCategory),
+                ),
+              );
+            },
+            child: albumsAsync.when(
+              data: (List<NavidromeAlbum> albums) {
+                if (albums.isEmpty) {
+                  return const Center(child: Text('No albums found'));
+                }
+                return GridView.builder(
+                  padding: const EdgeInsets.all(Insets.md),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.74,
+                    crossAxisSpacing: Insets.sm,
+                    mainAxisSpacing: Insets.sm,
+                  ),
+                  itemCount: albums.length,
+                  itemBuilder: (BuildContext ctx, int index) {
+                    final NavidromeAlbum album = albums[index];
+                    final String? coverUrl =
+                        client?.getCoverArtUrl(album.coverArt, size: 300);
+
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => NavidromeAlbumScreen(
+                              instance: widget.instance,
+                              albumId: album.id,
+                              initialAlbum: album,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          AspectRatio(
+                            aspectRatio: 1.0,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: coverUrl != null
+                                  ? AtriumNetworkImage(
+                                      imageUrl: coverUrl,
+                                      fit: BoxFit.cover,
+                                      errorWidget: (_, __, ___) => Container(
+                                        color: cs.surfaceContainerHighest,
+                                        child: const Icon(
+                                          Icons.album_rounded,
+                                          size: 40,
+                                        ),
+                                      ),
+                                    )
+                                  : Container(
+                                      color: cs.surfaceContainerHighest,
+                                      child: const Icon(
+                                        Icons.album_rounded,
+                                        size: 40,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            album.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            album.artist,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (Object err, _) => Center(
+                child: Text('Failed to load albums: $err'),
+              ),
             ),
-            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildArtistsTab(
+    ThemeData theme,
+    ColorScheme cs,
+    NavidromeClient? client,
+  ) {
+    final AsyncValue<List<NavidromeArtistIndex>> artistsAsync =
+        ref.watch(navidromeArtistsProvider(widget.instance));
+
+    return EasyRefresh(
+      onRefresh: () async {
+        ref.invalidate(navidromeArtistsProvider(widget.instance));
+      },
+      child: artistsAsync.when(
+        data: (List<NavidromeArtistIndex> indexes) {
+          if (indexes.isEmpty) {
+            return const Center(child: Text('No artists found'));
+          }
+
+          final List<Widget> items = <Widget>[];
+          for (final NavidromeArtistIndex group in indexes) {
+            if (group.artists.isEmpty) continue;
+            items.add(
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Insets.lg,
+                  vertical: Insets.xs,
+                ),
+                color: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+                width: double.infinity,
+                child: Text(
+                  group.name,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: cs.primary,
+                  ),
+                ),
+              ),
+            );
+
+            for (final NavidromeArtist artist in group.artists) {
+              final String cleanId = artist.id.startsWith('ar-')
+                  ? artist.id.substring(3)
+                  : artist.id;
+              final String artistArtId = (artist.coverArt != null &&
+                      artist.coverArt!.startsWith('ar-'))
+                  ? artist.coverArt!
+                  : 'ar-$cleanId';
+              final String? coverUrl = (artist.artistImageUrl != null &&
+                      artist.artistImageUrl!.isNotEmpty)
+                  ? artist.artistImageUrl
+                  : client?.getCoverArtUrl(artistArtId, size: 160);
+
+              items.add(
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: cs.primaryContainer,
+                    child: coverUrl != null
+                        ? ClipOval(
+                            child: AtriumNetworkImage(
+                              imageUrl: coverUrl,
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) => Icon(
+                                Icons.person_rounded,
+                                size: 24,
+                                color: cs.onPrimaryContainer,
+                              ),
+                            ),
+                          )
+                        : Icon(
+                            Icons.person_rounded,
+                            size: 24,
+                            color: cs.onPrimaryContainer,
+                          ),
+                  ),
+                  title: Text(
+                    artist.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '${artist.albumCount} ${artist.albumCount == 1 ? 'Album' : 'Albums'}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => NavidromeArtistScreen(
+                          instance: widget.instance,
+                          artistId: artist.id,
+                          initialArtistName: artist.name,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            }
+          }
+
+          return ListView(children: items);
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (Object err, _) => Center(
+          child: Text('Failed to load artists: $err'),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaylistsTab(
+    ThemeData theme,
+    ColorScheme cs,
+    NavidromeClient? client,
+  ) {
+    final AsyncValue<List<NavidromePlaylist>> playlistsAsync =
+        ref.watch(navidromePlaylistsProvider(widget.instance));
+
+    return EasyRefresh(
+      onRefresh: () async {
+        ref.invalidate(navidromePlaylistsProvider(widget.instance));
+      },
+      child: playlistsAsync.when(
+        data: (List<NavidromePlaylist> playlists) {
+          if (playlists.isEmpty) {
+            return const Center(child: Text('No playlists found'));
+          }
+
+          return ListView.separated(
+            padding: const EdgeInsets.symmetric(vertical: Insets.sm),
+            itemCount: playlists.length,
+            separatorBuilder: (_, __) => const Divider(height: 1),
+            itemBuilder: (BuildContext ctx, int index) {
+              final NavidromePlaylist pl = playlists[index];
+              final String? coverUrl =
+                  client?.getCoverArtUrl(pl.coverArt, size: 160);
+
+              return ListTile(
+                leading: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    color: cs.primaryContainer,
+                    child: coverUrl != null
+                        ? AtriumNetworkImage(
+                            imageUrl: coverUrl,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => Icon(
+                              Icons.queue_music_rounded,
+                              size: 24,
+                              color: cs.onPrimaryContainer,
+                            ),
+                          )
+                        : Icon(
+                            Icons.queue_music_rounded,
+                            size: 24,
+                            color: cs.onPrimaryContainer,
+                          ),
+                  ),
+                ),
+                title: Text(
+                  pl.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Text(
+                  '${pl.songCount} songs • ${_formatDuration(pl.duration)}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: cs.onSurfaceVariant,
+                  ),
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => NavidromePlaylistScreen(
+                        instance: widget.instance,
+                        playlistId: pl.id,
+                        initialName: pl.name,
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (Object err, _) => Center(
+          child: Text('Failed to load playlists: $err'),
+        ),
+      ),
     );
   }
 }
