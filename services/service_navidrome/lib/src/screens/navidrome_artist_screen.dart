@@ -23,11 +23,11 @@ class NavidromeArtistScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme cs = theme.colorScheme;
+
     final AsyncValue<NavidromeArtistDetail> detailAsync =
         ref.watch(navidromeArtistDetailProvider((instance, artistId)));
     final AsyncValue<NavidromeClient> clientAsync =
         ref.watch(navidromeClientProvider(instance));
-
     final NavidromeClient? client = clientAsync.value;
 
     return Scaffold(
@@ -40,12 +40,13 @@ class NavidromeArtistScreen extends ConsumerWidget {
       body: detailAsync.when(
         data: (NavidromeArtistDetail detail) {
           final NavidromeArtist artist = detail.artist;
-          final String cleanArtistId = artist.id.replaceFirst(RegExp(r'^ar-'), '');
+          final String cleanArtistId = artist.id.startsWith('ar-')
+              ? artist.id.substring(3)
+              : artist.id;
 
-          // True artist artwork resolution:
-          // 1. High-res Last.fm/Spotify artist banner from getArtistInfo2
-          // 2. OpenSubsonic artistImageUrl
-          // 3. Server artist artwork ID ar-<artistId>
+          // Priority 1: High-res external promotional banner from Last.fm/Spotify (via getArtistInfo2)
+          // Priority 2: Direct artistImageUrl from OpenSubsonic extension
+          // Priority 3: Navidrome server artist image via 'ar-<artistId>' (or coverArt if it explicitly starts with 'ar-')
           // NEVER fall back to 'al-' album covers or compilation album art!
           String? bannerUrl;
           if (detail.info?.largeImageUrl != null &&
@@ -150,8 +151,8 @@ class NavidromeArtistScreen extends ConsumerWidget {
                             const SizedBox(height: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
+                                horizontal: 12,
+                                vertical: 6,
                               ),
                               decoration: BoxDecoration(
                                 color: cs.secondaryContainer,
@@ -159,7 +160,7 @@ class NavidromeArtistScreen extends ConsumerWidget {
                               ),
                               child: Text(
                                 '${detail.albums.length} ${detail.albums.length == 1 ? 'Album' : 'Albums'}',
-                                style: theme.textTheme.labelMedium?.copyWith(
+                                style: theme.textTheme.labelLarge?.copyWith(
                                   color: cs.onSecondaryContainer,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -182,29 +183,18 @@ class NavidromeArtistScreen extends ConsumerWidget {
                     Insets.xs,
                   ),
                   sliver: SliverToBoxAdapter(
-                    child: Text(
-                      'About',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: _ArtistBiography(
+                      biography: detail.info!.biography!,
                     ),
                   ),
                 ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(
-                    Insets.lg,
-                    0,
-                    Insets.lg,
-                    Insets.sm,
+                const SliverPadding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: Insets.lg,
+                    vertical: Insets.sm,
                   ),
                   sliver: SliverToBoxAdapter(
-                    child: Text(
-                      detail.info!.biography!,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: cs.onSurfaceVariant,
-                        height: 1.45,
-                      ),
-                    ),
+                    child: Divider(height: 1),
                   ),
                 ),
               ],
@@ -234,97 +224,84 @@ class NavidromeArtistScreen extends ConsumerWidget {
               else
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(
-                    Insets.lg,
-                    0,
-                    Insets.lg,
+                    Insets.md,
+                    Insets.xs,
+                    Insets.md,
                     Insets.xl,
                   ),
                   sliver: SliverGrid(
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
-                      crossAxisSpacing: Insets.md,
-                      mainAxisSpacing: Insets.md,
-                      childAspectRatio: 0.75,
+                      childAspectRatio: 0.76,
+                      crossAxisSpacing: Insets.sm,
+                      mainAxisSpacing: Insets.sm,
                     ),
                     delegate: SliverChildBuilderDelegate(
                       (BuildContext ctx, int index) {
                         final NavidromeAlbum album = detail.albums[index];
-                        final String? coverUrl = client?.getCoverArtUrl(
-                          album.coverArt,
-                          size: 300,
-                        );
+                        final String? albumCoverUrl =
+                            client?.getCoverArtUrl(album.coverArt, size: 300);
 
-                        return Card(
-                          clipBehavior: Clip.antiAlias,
-                          elevation: 0,
-                          color: cs.surfaceContainerHighest,
-                          child: InkWell(
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (_) => NavidromeAlbumScreen(
-                                    instance: instance,
-                                    albumId: album.id,
-                                    initialAlbum: album,
-                                  ),
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => NavidromeAlbumScreen(
+                                  instance: instance,
+                                  albumId: album.id,
+                                  initialAlbum: album,
                                 ),
-                              );
-                            },
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: <Widget>[
-                                Expanded(
-                                  child: coverUrl != null
+                              ),
+                            );
+                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              AspectRatio(
+                                aspectRatio: 1.0,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: albumCoverUrl != null
                                       ? AtriumNetworkImage(
-                                          imageUrl: coverUrl,
+                                          imageUrl: albumCoverUrl,
                                           fit: BoxFit.cover,
-                                          width: double.infinity,
                                           errorWidget: (_, __, ___) =>
                                               Container(
                                             color: cs.surfaceContainerHighest,
                                             child: const Icon(
-                                              Icons.album,
-                                              size: 36,
+                                              Icons.album_rounded,
+                                              size: 40,
                                             ),
                                           ),
                                         )
                                       : Container(
                                           color: cs.surfaceContainerHighest,
                                           child: const Icon(
-                                            Icons.album,
-                                            size: 36,
+                                            Icons.album_rounded,
+                                            size: 40,
                                           ),
                                         ),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.all(Insets.sm),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: <Widget>[
-                                      Text(
-                                        album.name,
-                                        style: theme.textTheme.titleSmall
-                                            ?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      if (album.year != null)
-                                        Text(
-                                          '${album.year}',
-                                          style: theme.textTheme.bodySmall
-                                              ?.copyWith(
-                                            color: cs.onSurfaceVariant,
-                                          ),
-                                        ),
-                                    ],
-                                  ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                album.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
                                 ),
-                              ],
-                            ),
+                              ),
+                              Text(
+                                album.year != null ? '${album.year}' : '',
+                                maxLines: 1,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
                           ),
                         );
                       },
@@ -336,13 +313,17 @@ class NavidromeArtistScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (Object e, StackTrace st) => Center(
+        error: (Object err, _) => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              const Icon(Icons.error_outline, size: 48),
+              const Icon(
+                Icons.error_outline_rounded,
+                size: 48,
+                color: Colors.red,
+              ),
               const SizedBox(height: Insets.md),
-              Text('Failed to load artist: $e'),
+              Text('Failed to load artist: $err'),
               const SizedBox(height: Insets.md),
               FilledButton.tonal(
                 onPressed: () => ref.invalidate(
@@ -357,3 +338,91 @@ class NavidromeArtistScreen extends ConsumerWidget {
     );
   }
 }
+
+class _ArtistBiography extends StatefulWidget {
+  const _ArtistBiography({required this.biography});
+
+  final String biography;
+
+  @override
+  State<_ArtistBiography> createState() => _ArtistBiographyState();
+}
+
+class _ArtistBiographyState extends State<_ArtistBiography> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme cs = theme.colorScheme;
+    final String cleanText = widget.biography
+        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .trim();
+    final bool isLong = cleanText.length > 180;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          'About',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: Insets.xs),
+        AnimatedCrossFade(
+          duration: const Duration(milliseconds: 200),
+          crossFadeState:
+              _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          firstChild: Text(
+            cleanText,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: cs.onSurfaceVariant,
+              height: 1.45,
+            ),
+          ),
+          secondChild: Text(
+            cleanText,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: cs.onSurfaceVariant,
+              height: 1.45,
+            ),
+          ),
+        ),
+        if (isLong) ...<Widget>[
+          const SizedBox(height: 4),
+          InkWell(
+            borderRadius: BorderRadius.circular(6),
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    _expanded ? 'Read less' : 'Read more',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: cs.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 2),
+                  Icon(
+                    _expanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    size: 18,
+                    color: cs.primary,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
