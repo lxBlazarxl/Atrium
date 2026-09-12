@@ -265,6 +265,46 @@ void main() {
       expect(info!.biography, 'Bio of artist');
       expect(info.largeImageUrl, 'https://example.com/large.jpg');
     });
+
+    test('setRating sends rest/setRating.view with id and clamped rating', () async {
+      final adapter = _MockAdapter((options) {
+        expect(options.path, 'rest/setRating.view');
+        expect(options.queryParameters['id'], 'song-123');
+        expect(options.queryParameters['rating'], '5');
+        return {
+          'subsonic-response': {
+            'status': 'ok',
+            'version': '1.16.1',
+          },
+        };
+      });
+
+      final dio = Dio(BaseOptions(baseUrl: 'http://192.168.1.50:4533/'))
+        ..httpClientAdapter = adapter;
+      final client = NavidromeClient(instance: instance, dio: dio);
+
+      await client.setRating('song-123', 5);
+    });
+
+    test('setRating with 0 clears rating', () async {
+      final adapter = _MockAdapter((options) {
+        expect(options.path, 'rest/setRating.view');
+        expect(options.queryParameters['id'], 'album-456');
+        expect(options.queryParameters['rating'], '0');
+        return {
+          'subsonic-response': {
+            'status': 'ok',
+            'version': '1.16.1',
+          },
+        };
+      });
+
+      final dio = Dio(BaseOptions(baseUrl: 'http://192.168.1.50:4533/'))
+        ..httpClientAdapter = adapter;
+      final client = NavidromeClient(instance: instance, dio: dio);
+
+      await client.setRating('album-456', 0);
+    });
   });
 }
 

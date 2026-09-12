@@ -57,6 +57,7 @@ void main() {
         'year': 2001,
         'genre': 'Electronic',
         'playCount': 120,
+        'userRating': 4,
       };
 
       final album = NavidromeAlbum.fromJson(json);
@@ -70,6 +71,7 @@ void main() {
       expect(album.year, 2001);
       expect(album.genre, 'Electronic');
       expect(album.playCount, 120);
+      expect(album.userRating, 4);
     });
 
     test('NavidromeSong parses correctly', () {
@@ -92,6 +94,7 @@ void main() {
         'contentType': 'audio/flac',
         'path': 'Daft Punk/Discovery/01.flac',
         'playCount': 42,
+        'userRating': 5,
       };
 
       final song = NavidromeSong.fromJson(json);
@@ -102,6 +105,7 @@ void main() {
       expect(song.suffix, 'flac');
       expect(song.bitRate, 320);
       expect(song.playCount, 42);
+      expect(song.userRating, 5);
     });
 
     test('NavidromePlaylist parses correctly', () {

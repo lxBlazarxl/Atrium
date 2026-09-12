@@ -193,6 +193,28 @@ class NavidromeClient {
     return const NavidromeScanStatus(scanning: true, count: 0);
   }
 
+  Future<void> setRating(String id, int rating) async {
+    final int clamped = rating.clamp(0, 5);
+    final Response<dynamic> response = await dio.get<dynamic>(
+      'rest/setRating.view',
+      queryParameters: _buildAuthParams(<String, String>{
+        'id': id,
+        'rating': clamped.toString(),
+      }),
+    );
+    if (response.data is Map<String, dynamic>) {
+      final Map<String, dynamic> data = response.data as Map<String, dynamic>;
+      final dynamic resp = data['subsonic-response'] ?? data;
+      if (resp is Map<String, dynamic> && resp['status'] == 'failed') {
+        final dynamic err = resp['error'];
+        final String msg = (err is Map<String, dynamic>)
+            ? (err['message'] as String? ?? 'Failed to set rating')
+            : 'Failed to set rating';
+        throw Exception(msg);
+      }
+    }
+  }
+
   Future<List<NavidromeArtistIndex>> getArtists() async {
     final Response<dynamic> response = await dio.get<dynamic>(
       'rest/getArtists.view',
