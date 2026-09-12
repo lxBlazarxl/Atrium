@@ -219,6 +219,27 @@ void main() {
       expect(scan.count, 100);
     });
 
+    test('startScan sends fullScan=false for quick scan', () async {
+      final adapter = _MockAdapter((options) {
+        expect(options.path, 'rest/startScan.view');
+        expect(options.queryParameters['fullScan'], 'false');
+        return {
+          'subsonic-response': {
+            'status': 'ok',
+            'scanStatus': {'scanning': true, 'count': 10},
+          },
+        };
+      });
+
+      final dio = Dio(BaseOptions(baseUrl: 'http://192.168.1.50:4533/'))
+        ..httpClientAdapter = adapter;
+      final client = NavidromeClient(instance: instance, dio: dio);
+
+      final scan = await client.startScan();
+      expect(scan.scanning, true);
+      expect(scan.count, 10);
+    });
+
     test('getArtistInfo sends artist id and parses response', () async {
       final adapter = _MockAdapter((options) {
         expect(options.path, 'rest/getArtistInfo2.view');

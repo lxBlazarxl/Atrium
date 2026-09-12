@@ -71,15 +71,24 @@ class _NavidromeHomeState extends ConsumerState<NavidromeHome> {
     }
   }
 
-  Future<void> _triggerScan(BuildContext context) async {
+  Future<void> _triggerScan(
+    BuildContext context, {
+    bool fullScan = false,
+  }) async {
     try {
       final NavidromeClient client =
           await ref.read(navidromeClientProvider(widget.instance).future);
-      await client.startScan();
+      await client.startScan(fullScan: fullScan);
       ref.invalidate(navidromeScanStatusProvider(widget.instance));
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Library scan started')),
+          SnackBar(
+            content: Text(
+              fullScan
+                  ? 'Full library scan started'
+                  : 'Quick scan started (checking for new items)',
+            ),
+          ),
         );
       }
     } catch (e) {
@@ -154,7 +163,7 @@ class _NavidromeHomeState extends ConsumerState<NavidromeHome> {
           ),
           IconButton(
             icon: const Icon(Icons.sync_rounded),
-            tooltip: 'Scan library',
+            tooltip: 'Quick scan library',
             onPressed: () => _triggerScan(context),
           ),
           IconButton(

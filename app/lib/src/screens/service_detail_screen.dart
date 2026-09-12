@@ -211,7 +211,7 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
                     final AsyncValue<NavidromeScanStatus> scanAsync =
                         ref.watch(navidromeScanStatusProvider(instance));
                     return IconButton(
-                      tooltip: 'Scan Library',
+                      tooltip: 'Quick scan library',
                       icon: scanAsync.maybeWhen(
                         data: (NavidromeScanStatus scan) => scan.scanning
                             ? const SizedBox(
@@ -234,7 +234,9 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Library scan started'),
+                                content: Text(
+                                  'Quick scan started (checking for new items)',
+                                ),
                               ),
                             );
                           }

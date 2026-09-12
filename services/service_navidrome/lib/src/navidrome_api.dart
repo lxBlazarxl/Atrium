@@ -182,7 +182,7 @@ class NavidromeClient {
     final Response<dynamic> response = await dio.get<dynamic>(
       'rest/startScan.view',
       queryParameters: _buildAuthParams(<String, String>{
-        if (fullScan) 'fullScan': 'true',
+        'fullScan': fullScan ? 'true' : 'false',
       }),
     );
     if (response.data is Map<String, dynamic>) {
