@@ -204,5 +204,27 @@ void main() {
       expect(info.mediumImageUrl, 'https://example.com/med.jpg');
       expect(info.largeImageUrl, 'https://example.com/large.jpg');
     });
+
+    test('NavidromeAlbum and NavidromeSong safely parse boolean starred and string rating', () {
+      final albumJson = {
+        'id': 'alb-bool',
+        'name': 'Boolean Starred Album',
+        'starred': true,
+        'userRating': '5',
+      };
+      final album = NavidromeAlbum.fromJson(albumJson);
+      expect(album.isStarred, true);
+      expect(album.userRating, 5);
+
+      final songJson = {
+        'id': 'song-bool',
+        'title': 'Boolean Starred Song',
+        'starred': true,
+        'rating': '4',
+      };
+      final song = NavidromeSong.fromJson(songJson);
+      expect(song.isStarred, true);
+      expect(song.userRating, 4);
+    });
   });
 }

@@ -69,6 +69,8 @@ class NavidromeArtistScreen extends ConsumerWidget {
                         (instance, artistId),
                       ),
                     );
+                    ref.invalidate(navidromeArtistsProvider);
+                    ref.invalidate(navidromeAlbumsProvider);
                   },
                 );
               },
@@ -94,6 +96,8 @@ class NavidromeArtistScreen extends ConsumerWidget {
                   ref.invalidate(
                     navidromeArtistDetailProvider((instance, artistId)),
                   );
+                  ref.invalidate(navidromeArtistsProvider);
+                  ref.invalidate(navidromeAlbumsProvider);
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -321,8 +325,8 @@ class NavidromeArtistScreen extends ConsumerWidget {
 
                         return InkWell(
                           borderRadius: BorderRadius.circular(12),
-                          onTap: () {
-                            Navigator.of(context).push(
+                          onTap: () async {
+                            await Navigator.of(context).push(
                               MaterialPageRoute<void>(
                                 builder: (_) => NavidromeAlbumScreen(
                                   instance: instance,
@@ -331,6 +335,12 @@ class NavidromeArtistScreen extends ConsumerWidget {
                                 ),
                               ),
                             );
+                            ref.invalidate(
+                              navidromeArtistDetailProvider(
+                                (instance, artistId),
+                              ),
+                            );
+                            ref.invalidate(navidromeAlbumsProvider);
                           },
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

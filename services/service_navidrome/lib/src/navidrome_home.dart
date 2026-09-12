@@ -324,6 +324,11 @@ class _NavidromeHomeState extends ConsumerState<NavidromeHome> {
                   onSelected: (bool selected) {
                     if (selected) {
                       setState(() => _selectedAlbumCategory = cat.type);
+                      ref.invalidate(
+                        navidromeAlbumsProvider(
+                          (widget.instance, cat.type),
+                        ),
+                      );
                     }
                   },
                 ),
@@ -362,8 +367,8 @@ class _NavidromeHomeState extends ConsumerState<NavidromeHome> {
 
                     return InkWell(
                       borderRadius: BorderRadius.circular(12),
-                      onTap: () {
-                        Navigator.of(context).push(
+                      onTap: () async {
+                        await Navigator.of(context).push(
                           MaterialPageRoute<void>(
                             builder: (_) => NavidromeAlbumScreen(
                               instance: widget.instance,
@@ -372,6 +377,7 @@ class _NavidromeHomeState extends ConsumerState<NavidromeHome> {
                             ),
                           ),
                         );
+                        ref.invalidate(navidromeAlbumsProvider);
                       },
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

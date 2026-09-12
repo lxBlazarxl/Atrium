@@ -14,6 +14,20 @@ List<Map<String, dynamic>> _extractListOfMaps(dynamic value) {
   return <Map<String, dynamic>>[];
 }
 
+String? _parseStarred(dynamic value) {
+  if (value == null) return null;
+  if (value is bool) return value ? 'true' : null;
+  if (value is String) return value.trim().isNotEmpty ? value.trim() : null;
+  return value.toString();
+}
+
+int? _parseRating(dynamic userRating, dynamic rating) {
+  final dynamic r = userRating ?? rating;
+  if (r is num) return r.toInt();
+  if (r is String) return int.tryParse(r);
+  return null;
+}
+
 @immutable
 class NavidromeArtist {
   const NavidromeArtist({
@@ -45,9 +59,8 @@ class NavidromeArtist {
       albumCount: (json['albumCount'] as num?)?.toInt() ?? 0,
       coverArt: json['coverArt'] as String?,
       artistImageUrl: json['artistImageUrl'] as String?,
-      userRating: (json['userRating'] as num?)?.toInt() ??
-          (json['rating'] as num?)?.toInt(),
-      starred: json['starred'] as String?,
+      userRating: _parseRating(json['userRating'], json['rating']),
+      starred: _parseStarred(json['starred']),
     );
   }
 }
@@ -118,9 +131,8 @@ class NavidromeAlbum {
       year: (json['year'] as num?)?.toInt(),
       genre: json['genre'] as String?,
       playCount: (json['playCount'] as num?)?.toInt() ?? 0,
-      userRating: (json['userRating'] as num?)?.toInt() ??
-          (json['rating'] as num?)?.toInt(),
-      starred: json['starred'] as String?,
+      userRating: _parseRating(json['userRating'], json['rating']),
+      starred: _parseStarred(json['starred']),
     );
   }
 }
@@ -193,9 +205,8 @@ class NavidromeSong {
       contentType: json['contentType'] as String?,
       path: json['path'] as String?,
       playCount: (json['playCount'] as num?)?.toInt() ?? 0,
-      userRating: (json['userRating'] as num?)?.toInt() ??
-          (json['rating'] as num?)?.toInt(),
-      starred: json['starred'] as String?,
+      userRating: _parseRating(json['userRating'], json['rating']),
+      starred: _parseStarred(json['starred']),
     );
   }
 }

@@ -339,6 +339,10 @@ class NavidromeClient {
     int size = 50,
     int offset = 0,
   }) async {
+    if (type == 'starred') {
+      return _getStarredAlbums(size: size, offset: offset);
+    }
+
     final Response<dynamic> response = await dio.get<dynamic>(
       'rest/getAlbumList2.view',
       queryParameters: _buildAuthParams(<String, String>{
@@ -355,7 +359,7 @@ class NavidromeClient {
     if (resp is! Map<String, dynamic>) {
       return const <NavidromeAlbum>[];
     }
-    final dynamic albumList = resp['albumList2'];
+    final dynamic albumList = resp['albumList2'] ?? resp['albumList'];
     if (albumList is! Map<String, dynamic>) {
       return const <NavidromeAlbum>[];
     }
@@ -371,6 +375,107 @@ class NavidromeClient {
       ];
     }
     return const <NavidromeAlbum>[];
+  }
+
+  Future<List<NavidromeAlbum>> _getStarredAlbums({
+    int size = 50,
+    int offset = 0,
+  }) async {
+    final Map<String, NavidromeAlbum> resultMap = <String, NavidromeAlbum>{};
+
+    // 1. Primary: getAlbumList2 with type: 'starred'
+    try {
+      final Response<dynamic> response = await dio.get<dynamic>(
+        'rest/getAlbumList2.view',
+        queryParameters: _buildAuthParams(<String, String>{
+          'type': 'starred',
+          'size': size.toString(),
+          'offset': offset.toString(),
+        }),
+      );
+      if (response.data is Map<String, dynamic>) {
+        final Map<String, dynamic> data = response.data as Map<String, dynamic>;
+        final dynamic resp = data['subsonic-response'] ?? data;
+        if (resp is Map<String, dynamic>) {
+          final dynamic albumList = resp['albumList2'] ?? resp['albumList'];
+          if (albumList is Map<String, dynamic>) {
+            final dynamic albums = albumList['album'];
+            if (albums is List) {
+              for (final dynamic item in albums) {
+                if (item is Map<dynamic, dynamic>) {
+                  final NavidromeAlbum a =
+                      NavidromeAlbum.fromJson(item.cast<String, dynamic>());
+                  if (a.id.isNotEmpty) resultMap[a.id] = a;
+                }
+              }
+            } else if (albums is Map) {
+              final NavidromeAlbum a =
+                  NavidromeAlbum.fromJson(albums.cast<String, dynamic>());
+              if (a.id.isNotEmpty) resultMap[a.id] = a;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 2. Query getStarred2.view to catch directly starred albums and albums of starred songs
+    try {
+      final Response<dynamic> response = await dio.get<dynamic>(
+        'rest/getStarred2.view',
+        queryParameters: _buildAuthParams(),
+      );
+      if (response.data is Map<String, dynamic>) {
+        final Map<String, dynamic> data = response.data as Map<String, dynamic>;
+        final dynamic resp = data['subsonic-response'] ?? data;
+        if (resp is Map<String, dynamic>) {
+          final dynamic starred2 = resp['starred2'] ?? resp['starred'];
+          if (starred2 is Map<String, dynamic>) {
+            // Directly starred albums
+            final dynamic albums = starred2['album'];
+            if (albums is List) {
+              for (final dynamic item in albums) {
+                if (item is Map<dynamic, dynamic>) {
+                  final NavidromeAlbum a =
+                      NavidromeAlbum.fromJson(item.cast<String, dynamic>());
+                  if (a.id.isNotEmpty) resultMap[a.id] = a;
+                }
+              }
+            } else if (albums is Map) {
+              final NavidromeAlbum a =
+                  NavidromeAlbum.fromJson(albums.cast<String, dynamic>());
+              if (a.id.isNotEmpty) resultMap[a.id] = a;
+            }
+
+            // Albums from starred songs
+            final dynamic songs = starred2['song'];
+            if (songs is List) {
+              for (final dynamic item in songs) {
+                if (item is Map<dynamic, dynamic>) {
+                  final String? albumId =
+                      (item['albumId'] ?? item['parent']) as String?;
+                  if (albumId != null &&
+                      albumId.isNotEmpty &&
+                      !resultMap.containsKey(albumId)) {
+                    resultMap[albumId] = NavidromeAlbum(
+                      id: albumId,
+                      name: (item['album'] as String?) ?? 'Unknown Album',
+                      artist: (item['artist'] as String?) ?? 'Unknown Artist',
+                      artistId: item['artistId'] as String?,
+                      coverArt: (item['coverArt'] as String?) ?? albumId,
+                      year: (item['year'] as num?)?.toInt(),
+                      genre: item['genre'] as String?,
+                      starred: 'true',
+                    );
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    return resultMap.values.toList();
   }
 
   Future<NavidromeAlbumDetail> getAlbum(String albumId) async {

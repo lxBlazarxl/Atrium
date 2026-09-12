@@ -148,6 +148,7 @@ class NavidromePlaylistScreen extends ConsumerWidget {
                                   (instance, playlistId),
                                 ),
                               );
+                              ref.invalidate(navidromeAlbumsProvider);
                             } catch (e) {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -215,6 +216,7 @@ class NavidromePlaylistScreen extends ConsumerWidget {
                                       (instance, playlistId),
                                     ),
                                   );
+                                  ref.invalidate(navidromeAlbumsProvider);
                                 } catch (e) {
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(

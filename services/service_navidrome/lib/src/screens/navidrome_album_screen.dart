@@ -168,6 +168,7 @@ class NavidromeAlbumScreen extends ConsumerWidget {
                                   (instance, albumId),
                                 ),
                               );
+                              ref.invalidate(navidromeAlbumsProvider);
                             } catch (e) {
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -235,6 +236,7 @@ class NavidromeAlbumScreen extends ConsumerWidget {
                                       (instance, albumId),
                                     ),
                                   );
+                                  ref.invalidate(navidromeAlbumsProvider);
                                 } catch (e) {
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -350,6 +352,7 @@ class NavidromeAlbumScreen extends ConsumerWidget {
                         (instance, albumId),
                       ),
                     );
+                    ref.invalidate(navidromeAlbumsProvider);
                   },
                 );
               },
@@ -375,6 +378,7 @@ class NavidromeAlbumScreen extends ConsumerWidget {
                   ref.invalidate(
                     navidromeAlbumDetailProvider((instance, albumId)),
                   );
+                  ref.invalidate(navidromeAlbumsProvider);
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(

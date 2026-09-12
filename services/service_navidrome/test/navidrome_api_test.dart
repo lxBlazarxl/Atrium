@@ -344,6 +344,58 @@ void main() {
 
       await client.unstar(id: 'song-1');
     });
+
+    test('getAlbumList with type starred merges getAlbumList2 and getStarred2 songs', () async {
+      final adapter = _MockAdapter((options) {
+        if (options.path == 'rest/getAlbumList2.view') {
+          expect(options.queryParameters['type'], 'starred');
+          return {
+            'subsonic-response': {
+              'status': 'ok',
+              'version': '1.16.1',
+              'albumList2': {
+                'album': [
+                  {'id': 'alb-1', 'name': 'Discovery', 'artist': 'Daft Punk', 'starred': '2026-01-01'},
+                ],
+              },
+            },
+          };
+        }
+        if (options.path == 'rest/getStarred2.view') {
+          return {
+            'subsonic-response': {
+              'status': 'ok',
+              'version': '1.16.1',
+              'starred2': {
+                'album': [
+                  {'id': 'alb-1', 'name': 'Discovery', 'artist': 'Daft Punk', 'starred': '2026-01-01'},
+                ],
+                'song': [
+                  {
+                    'id': 's-2',
+                    'title': 'Get Lucky',
+                    'album': 'Random Access Memories',
+                    'albumId': 'alb-2',
+                    'artist': 'Daft Punk',
+                    'coverArt': 'al-2',
+                  },
+                ],
+              },
+            },
+          };
+        }
+        throw UnimplementedError(options.path);
+      });
+
+      final dio = Dio(BaseOptions(baseUrl: 'http://192.168.1.50:4533/'))
+        ..httpClientAdapter = adapter;
+      final client = NavidromeClient(instance: instance, dio: dio);
+
+      final albums = await client.getAlbumList(type: 'starred');
+      expect(albums.length, 2);
+      expect(albums.any((a) => a.id == 'alb-1' && a.name == 'Discovery'), true);
+      expect(albums.any((a) => a.id == 'alb-2' && a.name == 'Random Access Memories'), true);
+    });
   });
 }
 
