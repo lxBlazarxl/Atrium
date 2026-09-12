@@ -50,7 +50,11 @@ class NavidromeAlbumScreen extends ConsumerWidget {
   final String albumId;
   final NavidromeAlbum? initialAlbum;
 
-  void _showSongDetails(BuildContext context, NavidromeSong song) {
+  void _showSongDetails(
+    BuildContext context,
+    NavidromeSong song, {
+    String? coverUrl,
+  }) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme cs = theme.colorScheme;
 
@@ -84,16 +88,25 @@ class NavidromeAlbumScreen extends ConsumerWidget {
                 const SizedBox(height: Insets.md),
                 Row(
                   children: <Widget>[
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        width: 48,
+                        height: 48,
                         color: cs.primaryContainer,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        Icons.music_note_rounded,
-                        color: cs.onPrimaryContainer,
+                        child: coverUrl != null
+                            ? AtriumNetworkImage(
+                                imageUrl: coverUrl,
+                                fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) => Icon(
+                                  Icons.music_note_rounded,
+                                  color: cs.onPrimaryContainer,
+                                ),
+                              )
+                            : Icon(
+                                Icons.music_note_rounded,
+                                color: cs.onPrimaryContainer,
+                              ),
                       ),
                     ),
                     const SizedBox(width: Insets.md),
@@ -513,12 +526,19 @@ class NavidromeAlbumScreen extends ConsumerWidget {
                                   Icons.info_outline_rounded,
                                   size: 18,
                                 ),
-                                onPressed: () =>
-                                    _showSongDetails(context, song),
+                                onPressed: () => _showSongDetails(
+                                  context,
+                                  song,
+                                  coverUrl: songCoverUrl,
+                                ),
                               ),
                             ],
                           ),
-                          onTap: () => _showSongDetails(context, song),
+                          onTap: () => _showSongDetails(
+                            context,
+                            song,
+                            coverUrl: songCoverUrl,
+                          ),
                         );
                       },
                       childCount: detail.songs.length,
