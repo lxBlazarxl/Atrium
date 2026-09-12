@@ -144,16 +144,17 @@ class NavidromeAlbumScreen extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: Insets.md,
-                        vertical: 8,
+                        vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: cs.surfaceContainerHighest.withValues(alpha: 0.45),
-                        borderRadius: BorderRadius.circular(12),
+                        color:
+                            cs.surfaceContainerHighest.withValues(alpha: 0.45),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Column(
                         children: <Widget>[
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: <Widget>[
                               Text(
                                 'Rating',
@@ -161,43 +162,49 @@ class NavidromeAlbumScreen extends ConsumerWidget {
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              if (currentRating > 0) ...<Widget>[
-                                const SizedBox(width: 8),
-                                Text(
-                                  '$currentRating / 5',
-                                  style: theme.textTheme.labelMedium?.copyWith(
-                                    color: Colors.amber[800] ?? Colors.amber,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              Text(
+                                navidromeRatingLabel(currentRating),
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: currentRating > 0
+                                      ? (Colors.amber[800] ?? Colors.amber)
+                                      : cs.onSurfaceVariant,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                              ],
+                              ),
                             ],
                           ),
-                          NavidromeRatingBar(
-                            rating: currentRating,
-                            starSize: 24,
-                            spacing: 4,
-                            onRatingChanged: (int newRating) async {
-                              setModalState(() {
-                                currentRating = newRating;
-                              });
-                              final NavidromeClient? client =
-                                  ref.read(navidromeClientProvider(instance)).value;
-                              try {
-                                await client?.setRating(song.id, newRating);
-                                ref.invalidate(
-                                  navidromeAlbumDetailProvider((instance, albumId)),
-                                );
-                              } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Failed to set rating: $e'),
+                          const SizedBox(height: 10),
+                          Center(
+                            child: NavidromeRatingBar(
+                              rating: currentRating,
+                              starSize: 34,
+                              spacing: 6,
+                              onRatingChanged: (int newRating) async {
+                                setModalState(() {
+                                  currentRating = newRating;
+                                });
+                                final NavidromeClient? client = ref
+                                    .read(navidromeClientProvider(instance))
+                                    .value;
+                                try {
+                                  await client?.setRating(song.id, newRating);
+                                  ref.invalidate(
+                                    navidromeAlbumDetailProvider(
+                                      (instance, albumId),
                                     ),
                                   );
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text('Failed to set rating: $e'),
+                                      ),
+                                    );
+                                  }
                                 }
-                              }
-                            },
+                              },
+                            ),
                           ),
                         ],
                       ),
@@ -436,27 +443,37 @@ class NavidromeAlbumScreen extends ConsumerWidget {
                                     icon: Icons.schedule_rounded,
                                     label: _formatAlbumDuration(album.duration),
                                   ),
-                                _AlbumRatingBadge(
-                                  rating: album.userRating ?? 0,
-                                  onRatingChanged: (int newRating) async {
-                                    try {
-                                      await client?.setRating(album.id, newRating);
-                                      ref.invalidate(
-                                        navidromeAlbumDetailProvider(
-                                          (instance, albumId),
-                                        ),
-                                      );
-                                    } catch (e) {
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              'Failed to set album rating: $e',
-                                            ),
+                                _AlbumBadge(
+                                  icon: (album.userRating != null &&
+                                          album.userRating! > 0)
+                                      ? Icons.star_rounded
+                                      : Icons.star_outline_rounded,
+                                  iconColor: (album.userRating != null &&
+                                          album.userRating! > 0)
+                                      ? Colors.amber
+                                      : null,
+                                  label: (album.userRating != null &&
+                                          album.userRating! > 0)
+                                      ? '${album.userRating} / 5'
+                                      : 'Rate',
+                                  onTap: () {
+                                    showNavidromeRatingModal(
+                                      context: context,
+                                      title: 'Rate Album',
+                                      subtitle: album.name,
+                                      initialRating: album.userRating ?? 0,
+                                      onRatingChanged: (int newRating) async {
+                                        await client?.setRating(
+                                          album.id,
+                                          newRating,
+                                        );
+                                        ref.invalidate(
+                                          navidromeAlbumDetailProvider(
+                                            (instance, albumId),
                                           ),
                                         );
-                                      }
-                                    }
+                                      },
+                                    );
                                   },
                                 ),
                               ],
@@ -708,17 +725,21 @@ class _AlbumBadge extends StatelessWidget {
   const _AlbumBadge({
     required this.icon,
     required this.label,
+    this.iconColor,
+    this.onTap,
   });
 
   final IconData icon;
   final String label;
+  final Color? iconColor;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme cs = theme.colorScheme;
 
-    return Container(
+    final Widget badge = Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 10,
         vertical: 6,
@@ -733,7 +754,7 @@ class _AlbumBadge extends StatelessWidget {
           Icon(
             icon,
             size: 15,
-            color: cs.onSecondaryContainer,
+            color: iconColor ?? cs.onSecondaryContainer,
           ),
           const SizedBox(width: 6),
           Text(
@@ -746,6 +767,18 @@ class _AlbumBadge extends StatelessWidget {
         ],
       ),
     );
+
+    if (onTap != null) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: badge,
+        ),
+      );
+    }
+    return badge;
   }
 }
 
@@ -785,59 +818,6 @@ class _DetailTile extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AlbumRatingBadge extends StatefulWidget {
-  const _AlbumRatingBadge({
-    required this.rating,
-    required this.onRatingChanged,
-  });
-
-  final int rating;
-  final ValueChanged<int> onRatingChanged;
-
-  @override
-  State<_AlbumRatingBadge> createState() => _AlbumRatingBadgeState();
-}
-
-class _AlbumRatingBadgeState extends State<_AlbumRatingBadge> {
-  late int _rating = widget.rating;
-
-  @override
-  void didUpdateWidget(covariant _AlbumRatingBadge oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.rating != widget.rating) {
-      _rating = widget.rating;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final ColorScheme cs = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 8,
-        vertical: 4,
-      ),
-      decoration: BoxDecoration(
-        color: cs.secondaryContainer,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: NavidromeRatingBar(
-        rating: _rating,
-        starSize: 17,
-        activeColor: Colors.amber,
-        inactiveColor: cs.onSecondaryContainer.withValues(alpha: 0.35),
-        onRatingChanged: (int newRating) {
-          setState(() {
-            _rating = newRating;
-          });
-          widget.onRatingChanged(newRating);
-        },
       ),
     );
   }

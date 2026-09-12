@@ -63,4 +63,56 @@ void main() {
 
     expect(selectedRating, 0);
   });
+
+  test('navidromeRatingLabel returns expected descriptors', () {
+    expect(navidromeRatingLabel(0), 'Not Rated');
+    expect(navidromeRatingLabel(1), '1 Star • Poor');
+    expect(navidromeRatingLabel(3), '3 Stars • Good');
+    expect(navidromeRatingLabel(5), '5 Stars • Masterpiece');
+  });
+
+  testWidgets('showNavidromeRatingModal displays modal with large stars and descriptor',
+      (WidgetTester tester) async {
+    int? updatedRating;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (BuildContext context) {
+              return ElevatedButton(
+                onPressed: () {
+                  showNavidromeRatingModal(
+                    context: context,
+                    title: 'Rate Album',
+                    subtitle: 'Discovery',
+                    initialRating: 4,
+                    onRatingChanged: (int val) async {
+                      updatedRating = val;
+                    },
+                  );
+                },
+                child: const Text('Open Modal'),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    // Open modal
+    await tester.tap(find.text('Open Modal'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Rate Album'), findsOneWidget);
+    expect(find.text('Discovery'), findsOneWidget);
+    expect(find.text('4 Stars • Great'), findsOneWidget);
+    expect(find.text('Remove Rating'), findsOneWidget);
+
+    // Tap Remove Rating
+    await tester.tap(find.text('Remove Rating'));
+    await tester.pumpAndSettle();
+
+    expect(updatedRating, 0);
+  });
 }

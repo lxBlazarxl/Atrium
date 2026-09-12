@@ -124,16 +124,17 @@ class NavidromePlaylistScreen extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: Insets.md,
-                        vertical: 8,
+                        vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: cs.surfaceContainerHighest.withValues(alpha: 0.45),
-                        borderRadius: BorderRadius.circular(12),
+                        color:
+                            cs.surfaceContainerHighest.withValues(alpha: 0.45),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Column(
                         children: <Widget>[
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: <Widget>[
                               Text(
                                 'Rating',
@@ -141,45 +142,49 @@ class NavidromePlaylistScreen extends ConsumerWidget {
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              if (currentRating > 0) ...<Widget>[
-                                const SizedBox(width: 8),
-                                Text(
-                                  '$currentRating / 5',
-                                  style: theme.textTheme.labelMedium?.copyWith(
-                                    color: Colors.amber[800] ?? Colors.amber,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              Text(
+                                navidromeRatingLabel(currentRating),
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: currentRating > 0
+                                      ? (Colors.amber[800] ?? Colors.amber)
+                                      : cs.onSurfaceVariant,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                              ],
+                              ),
                             ],
                           ),
-                          NavidromeRatingBar(
-                            rating: currentRating,
-                            starSize: 24,
-                            spacing: 4,
-                            onRatingChanged: (int newRating) async {
-                              setModalState(() {
-                                currentRating = newRating;
-                              });
-                              final NavidromeClient? client =
-                                  ref.read(navidromeClientProvider(instance)).value;
-                              try {
-                                await client?.setRating(song.id, newRating);
-                                ref.invalidate(
-                                  navidromePlaylistDetailProvider(
-                                    (instance, playlistId),
-                                  ),
-                                );
-                              } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Failed to set rating: $e'),
+                          const SizedBox(height: 10),
+                          Center(
+                            child: NavidromeRatingBar(
+                              rating: currentRating,
+                              starSize: 34,
+                              spacing: 6,
+                              onRatingChanged: (int newRating) async {
+                                setModalState(() {
+                                  currentRating = newRating;
+                                });
+                                final NavidromeClient? client = ref
+                                    .read(navidromeClientProvider(instance))
+                                    .value;
+                                try {
+                                  await client?.setRating(song.id, newRating);
+                                  ref.invalidate(
+                                    navidromePlaylistDetailProvider(
+                                      (instance, playlistId),
                                     ),
                                   );
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text('Failed to set rating: $e'),
+                                      ),
+                                    );
+                                  }
                                 }
-                              }
-                            },
+                              },
+                            ),
                           ),
                         ],
                       ),
