@@ -363,10 +363,19 @@ class NavidromeAlbumScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+              const SliverPadding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: Insets.lg,
+                  vertical: Insets.sm,
+                ),
+                sliver: SliverToBoxAdapter(
+                  child: Divider(height: 1),
+                ),
+              ),
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(
                   Insets.lg,
-                  Insets.md,
+                  Insets.xs,
                   Insets.lg,
                   Insets.xs,
                 ),
