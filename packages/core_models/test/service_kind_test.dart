@@ -33,8 +33,19 @@ void main() {
         'unraid',
         'navidrome',
         'gluetun',
+        'ombi',
       ],
     );
+  });
+
+  test('Ombi is registered as a beta apiKey request service', () {
+    expect(ServiceKind.ombi.displayName, 'Ombi');
+    expect(ServiceKind.ombi.tagline, 'Requests');
+    expect(ServiceKind.ombi.isBeta, isTrue);
+    expect(ServiceKind.ombi.defaultPort, 3579);
+    expect(ServiceKind.ombi.authStyle, AuthStyle.apiKey);
+    expect(ServiceKind.ombi.role, ServiceRole.requests);
+    expect(ServiceKind.ombi.acceptsTorrents, isFalse);
   });
 
   test('Lidarr is registered as apiKey automation service', () {
