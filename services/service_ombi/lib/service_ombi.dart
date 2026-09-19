@@ -5,6 +5,8 @@ export 'src/ombi_failure.dart';
 export 'src/ombi_home.dart';
 export 'src/ombi_providers.dart';
 export 'src/ombi_request_actions.dart';
+export 'src/ombi_request_sheet.dart';
+export 'src/ombi_search.dart';
 export 'src/services/ombi_client.dart';
 export 'src/services/ombi_request_service.dart';
 export 'src/services/ombi_result.dart';
