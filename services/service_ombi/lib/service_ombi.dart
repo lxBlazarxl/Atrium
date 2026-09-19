@@ -2,6 +2,7 @@ export 'src/generated/generated.dart';
 export 'src/models/ombi_mapping.dart';
 export 'src/models/ombi_models.dart';
 export 'src/ombi_failure.dart';
+export 'src/ombi_providers.dart';
 export 'src/services/ombi_client.dart';
 export 'src/services/ombi_request_service.dart';
 export 'src/services/ombi_result.dart';
