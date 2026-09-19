@@ -62,7 +62,7 @@ class _OmbiSearchResults extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (Object error, StackTrace _) => ErrorView(
             title: 'Search failed',
-            message: describeOmbiFailure(error, searching: true),
+            message: describeOmbiFailure(error, lookup: OmbiLookup.search),
             onRetry: () => ref.invalidate(ombiSearchProvider(key)),
           ),
           data: (List<OmbiSearchHit> hits) {

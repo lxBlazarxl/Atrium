@@ -107,7 +107,7 @@ class _OmbiRequestSheetState extends ConsumerState<OmbiRequestSheet> {
                     children: <Widget>[
                       Expanded(
                         child: Text(
-                          describeOmbiFailure(error),
+                          describeOmbiFailure(error, lookup: OmbiLookup.title),
                           style: theme.textTheme.bodyMedium
                               ?.copyWith(color: theme.colorScheme.error),
                         ),

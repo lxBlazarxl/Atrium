@@ -82,6 +82,33 @@ void main() {
     expect(find.widgetWithText(FilledButton, 'Request'), findsOneWidget);
   });
 
+  testWidgets('a title Ombi cannot look up says why, with a retry',
+      (WidgetTester tester) async {
+    fake.on(
+      'GET',
+      '/api/v2/Search/movie/969681',
+      <String, dynamic>{'error': 'parse error'},
+      status: 500,
+    );
+    await openDiscover(tester);
+
+    await tester.tap(find.text('Spider-Man: Brand New Day'));
+    await settle(tester);
+    // Past the two quick retries.
+    await tester.pump(const Duration(seconds: 2));
+    await settle(tester);
+
+    expect(
+      find.text(
+        'Ombi could not look this title up right now. It could not reach '
+        'its movie database.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.widgetWithText(TextButton, 'Retry'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Request'), findsNothing);
+  });
+
   testWidgets('a list that fails keeps to its own row',
       (WidgetTester tester) async {
     fake.on(

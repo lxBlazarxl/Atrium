@@ -86,7 +86,7 @@ void main() {
       expect(
         describeOmbiFailure(
           const OmbiException('boom', statusCode: 500),
-          searching: true,
+          lookup: OmbiLookup.search,
         ),
         'Ombi could not search right now. It could not reach its movie '
         'database. Try again.',
@@ -97,10 +97,31 @@ void main() {
       expect(
         describeOmbiFailure(
           const OmbiException('boom', statusCode: 500),
-          browsing: true,
+          lookup: OmbiLookup.list,
         ),
         'Ombi could not load this list right now. It could not reach its '
         'movie database.',
+      );
+    });
+
+    test('so does a title Ombi could not look up', () {
+      expect(
+        describeOmbiFailure(
+          const OmbiException('boom', statusCode: 500),
+          lookup: OmbiLookup.title,
+        ),
+        'Ombi could not look this title up right now. It could not reach '
+        'its movie database.',
+      );
+    });
+
+    test('a refused key is still a refused key during a lookup', () {
+      expect(
+        describeOmbiFailure(
+          const OmbiException('x', statusCode: 401),
+          lookup: OmbiLookup.title,
+        ),
+        'Ombi refused the API key. It is under Settings, Ombi.',
       );
     });
 

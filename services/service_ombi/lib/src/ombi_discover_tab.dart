@@ -88,7 +88,7 @@ class _DiscoverRow extends ConsumerWidget {
                     children: <Widget>[
                       Expanded(
                         child: Text(
-                          describeOmbiFailure(error, browsing: true),
+                          describeOmbiFailure(error, lookup: OmbiLookup.list),
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
