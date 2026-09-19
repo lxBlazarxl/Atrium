@@ -6,13 +6,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'models/ombi_models.dart';
+import 'ombi_discover_tab.dart';
 import 'ombi_failure.dart';
 import 'ombi_providers.dart';
 import 'ombi_request_actions.dart';
 import 'widgets/ombi_request_tile.dart';
 
-/// Ombi's requests for one instance: movies, TV and, when Ombi has Lidarr,
-/// music, filtered by where each request stands.
+/// Ombi for one instance: its requests, filtered by kind and by where each
+/// one stands, and a Discover tab to find something new to request.
 class OmbiHome extends ConsumerStatefulWidget {
   const OmbiHome({required this.instance, super.key});
 
@@ -37,6 +38,32 @@ class _OmbiHomeState extends ConsumerState<OmbiHome> {
 
   @override
   Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: <Widget>[
+          const TabBar(
+            tabs: <Widget>[
+              Tab(text: 'Requests', icon: Icon(Icons.playlist_play)),
+              Tab(text: 'Discover', icon: Icon(Icons.explore_outlined)),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              children: <Widget>[
+                // Built from this state rather than a tab widget of its own,
+                // so the chosen kind and filter survive a trip to Discover.
+                _requests(),
+                OmbiDiscoverTab(instance: widget.instance),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _requests() {
     final bool music =
         ref.watch(ombiMusicEnabledProvider(widget.instance)).value ?? false;
     // Lidarr switched off while Music was showing: fall back to movies
@@ -85,8 +112,8 @@ class _OmbiHomeState extends ConsumerState<OmbiHome> {
           padding: const EdgeInsets.symmetric(horizontal: Insets.lg),
           child: Row(
             children: <Widget>[
-              for (final OmbiRequestFilter f in OmbiRequestFilter.values)
-                ...<Widget>[
+              for (final OmbiRequestFilter f
+                  in OmbiRequestFilter.values) ...<Widget>[
                 ChoiceChip(
                   label: Text(_filterLabels[f]!),
                   selected: f == _filter,

@@ -147,34 +147,51 @@ Duration? _tmdbBackedRetry(int retryCount, Object error) {
 typedef OmbiSearchKey = ({Instance instance, String query});
 
 final ombiSearchProvider =
-    FutureProvider.autoDispose.family<List<OmbiSearchHit>, OmbiSearchKey>((
-  Ref ref,
-  OmbiSearchKey key,
-) async {
-  // Every keystroke is a new query. Wait a moment, and let the ones already
-  // superseded be disposed before they cost Ombi a TMDB round trip.
-  await Future<void>.delayed(const Duration(milliseconds: 350));
-  if (!ref.mounted) {
-    return const <OmbiSearchHit>[];
-  }
-  final OmbiClient client =
-      await ref.watch(ombiClientProvider(key.instance).future);
-  return client.searchService.search(key.query);
-},
+    FutureProvider.autoDispose.family<List<OmbiSearchHit>, OmbiSearchKey>(
+  (
+    Ref ref,
+    OmbiSearchKey key,
+  ) async {
+    // Every keystroke is a new query. Wait a moment, and let the ones already
+    // superseded be disposed before they cost Ombi a TMDB round trip.
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+    if (!ref.mounted) {
+      return const <OmbiSearchHit>[];
+    }
+    final OmbiClient client =
+        await ref.watch(ombiClientProvider(key.instance).future);
+    return client.searchService.search(key.query);
+  },
+  retry: _tmdbBackedRetry,
+);
+
+typedef OmbiDiscoverKey = ({Instance instance, OmbiDiscoverRow row});
+
+/// One Discover row. Kept for the session rather than disposed with the tab,
+/// so flicking between Requests and Discover does not refetch every list
+/// through a TMDB connection that may be slow. Pull to refresh reloads it.
+final ombiDiscoverProvider =
+    FutureProvider.family<List<OmbiSearchHit>, OmbiDiscoverKey>(
+  (Ref ref, OmbiDiscoverKey key) async {
+    final OmbiClient client =
+        await ref.watch(ombiClientProvider(key.instance).future);
+    return client.searchService.discover(key.row);
+  },
   retry: _tmdbBackedRetry,
 );
 
 typedef OmbiTitleKey = ({Instance instance, OmbiMediaKind kind, int tmdbId});
 
 final ombiTitleStateProvider =
-    FutureProvider.autoDispose.family<OmbiTitleState, OmbiTitleKey>((
-  Ref ref,
-  OmbiTitleKey key,
-) async {
-  final OmbiClient client =
-      await ref.watch(ombiClientProvider(key.instance).future);
-  return client.searchService.titleState(key.kind, key.tmdbId);
-},
+    FutureProvider.autoDispose.family<OmbiTitleState, OmbiTitleKey>(
+  (
+    Ref ref,
+    OmbiTitleKey key,
+  ) async {
+    final OmbiClient client =
+        await ref.watch(ombiClientProvider(key.instance).future);
+    return client.searchService.titleState(key.kind, key.tmdbId);
+  },
   retry: _tmdbBackedRetry,
 );
 

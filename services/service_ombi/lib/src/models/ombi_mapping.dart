@@ -90,6 +90,44 @@ OmbiSearchHit? ombiSearchHitFrom(MultiSearchResult r) {
   );
 }
 
+/// A Discover movie. Movies carry their TMDB id as `theMovieDbId`, a string,
+/// as well as in `id`.
+OmbiSearchHit? ombiSearchHitFromMovie(SearchMovieViewModel m) {
+  final int? id = int.tryParse(m.theMovieDbId ?? '') ?? m.id;
+  final String? title = _text(m.title);
+  if (id == null || title == null) {
+    return null;
+  }
+  return OmbiSearchHit(
+    tmdbId: id,
+    kind: OmbiMediaKind.movie,
+    title: title,
+    posterUrl: ombiPosterUrl(m.posterPath),
+    overview: _text(m.overview),
+    requested: m.requested ?? false,
+    available: m.available ?? false,
+  );
+}
+
+/// A Discover show. On these rows `theMovieDbId` is empty and the TMDB id is
+/// `id`, which the TV detail route confirms.
+OmbiSearchHit? ombiSearchHitFromShow(SearchTvShowViewModel t) {
+  final int? id = int.tryParse(t.theMovieDbId ?? '') ?? t.id;
+  final String? title = _text(t.title);
+  if (id == null || title == null) {
+    return null;
+  }
+  return OmbiSearchHit(
+    tmdbId: id,
+    kind: OmbiMediaKind.tv,
+    title: title,
+    posterUrl: ombiPosterUrl(t.posterPath),
+    overview: _text(t.overview),
+    requested: t.requested ?? false,
+    available: t.available ?? false,
+  );
+}
+
 OmbiTitleState ombiTitleStateFromMovie(MovieFullInfoViewModel m) =>
     OmbiTitleState(
       requested: m.requested ?? false,

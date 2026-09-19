@@ -10,6 +10,9 @@ enum OmbiRequestFilter { pending, processing, available, denied, all }
 /// Which seasons a TV request asks for.
 enum OmbiTvSeasons { all, first, latest }
 
+/// The rows on the Discover tab, each one of Ombi's own lists.
+enum OmbiDiscoverRow { popularMovies, upcomingMovies, popularTv, trendingTv }
+
 /// One request as the screens use it, whatever kind it is.
 class OmbiRequest {
   const OmbiRequest({
@@ -62,7 +65,7 @@ class OmbiCounts {
   int get total => pending + approved + available + denied;
 }
 
-/// A movie or a show that search found.
+/// A movie or a show that search or Discover found.
 class OmbiSearchHit {
   const OmbiSearchHit({
     required this.tmdbId,
@@ -70,6 +73,8 @@ class OmbiSearchHit {
     required this.title,
     this.posterUrl,
     this.overview,
+    this.requested = false,
+    this.available = false,
   });
 
   final int tmdbId;
@@ -77,6 +82,11 @@ class OmbiSearchHit {
   final String title;
   final String? posterUrl;
   final String? overview;
+
+  /// What the list said about it. Search results do not say, so these stay
+  /// false there; the request sheet reads the real state either way.
+  final bool requested;
+  final bool available;
 }
 
 /// Where a title stands in Ombi, read from its detail page.

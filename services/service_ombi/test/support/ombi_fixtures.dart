@@ -171,3 +171,42 @@ Map<String, dynamic> engineError(String message) => <String, dynamic>{
       'errorMessage': message,
       'requestId': 0,
     };
+
+/// A Discover movie row. Movies carry their TMDB id twice, the second time
+/// as a string.
+Map<String, dynamic> discoverMovieJson({
+  int id = 969681,
+  String title = 'Spider-Man: Brand New Day',
+  bool requested = false,
+  bool available = false,
+}) =>
+    <String, dynamic>{
+      'id': id,
+      'theMovieDbId': '$id',
+      'title': title,
+      'posterPath': '/bjiS5ipwxb9JFy3XRRN4OAilSeX.jpg',
+      'overview': 'Peter Parker starts over.',
+      'releaseDate': '2026-07-31T00:00:00',
+      'requested': requested,
+      'available': available,
+      'requestId': 0,
+      'type': 1,
+    };
+
+/// A Discover TV row. Here theMovieDbId is empty and the TMDB id is `id`.
+Map<String, dynamic> discoverShowJson({
+  int id = 275102,
+  String title = 'The Scandal',
+}) =>
+    <String, dynamic>{
+      'id': id,
+      'theMovieDbId': null,
+      'title': title,
+      'posterPath': '/pJsIzlTjmx07ilwEkl0cglrMVa1.jpg',
+      'overview': 'A drama.',
+      'firstAired': '2025-01-01T00:00:00',
+      'requested': false,
+      'available': false,
+      'requestId': 0,
+      'type': 0,
+    };

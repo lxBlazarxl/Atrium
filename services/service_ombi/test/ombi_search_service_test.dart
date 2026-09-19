@@ -93,4 +93,31 @@ void main() {
 
     expect(s.partlyAvailable, isTrue);
   });
+
+  test('each Discover row comes from its own route', () async {
+    fake
+      ..on('GET', '/api/v2/Search/movie/popular/0/20', <Object>[
+        discoverMovieJson(),
+      ])
+      ..on('GET', '/api/v2/Search/movie/upcoming/0/20', <Object>[
+        discoverMovieJson(id: 1, title: 'Soon'),
+      ])
+      ..on('GET', '/api/v2/Search/tv/popular/0/20', <Object>[
+        discoverShowJson(),
+      ])
+      ..on('GET', '/api/v2/Search/tv/trending/0/20', <Object>[
+        discoverShowJson(id: 2, title: 'Hot'),
+      ]);
+
+    Future<List<String>> titles(OmbiDiscoverRow row) async =>
+        (await search.discover(row)).map((OmbiSearchHit h) => h.title).toList();
+
+    expect(
+      await titles(OmbiDiscoverRow.popularMovies),
+      <String>['Spider-Man: Brand New Day'],
+    );
+    expect(await titles(OmbiDiscoverRow.upcomingMovies), <String>['Soon']);
+    expect(await titles(OmbiDiscoverRow.popularTv), <String>['The Scandal']);
+    expect(await titles(OmbiDiscoverRow.trendingTv), <String>['Hot']);
+  });
 }

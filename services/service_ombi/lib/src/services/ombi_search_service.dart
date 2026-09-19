@@ -54,6 +54,55 @@ class OmbiSearchService {
     ];
   }
 
+  /// One Discover row: the first [take] entries of one of Ombi's lists.
+  Future<List<OmbiSearchHit>> discover(
+    OmbiDiscoverRow row, {
+    int take = 20,
+  }) async {
+    const String from = '0';
+    final String count = '$take';
+    switch (row) {
+      case OmbiDiscoverRow.popularMovies:
+      case OmbiDiscoverRow.upcomingMovies:
+        final List<SearchMovieViewModel> movies = requireData(
+          await (row == OmbiDiscoverRow.popularMovies
+              ? _rawSearchApi
+                  .getSearchMoviePopularByCurrentPositionAmountToLoad(
+                  currentPosition: from,
+                  amountToLoad: count,
+                )
+              : _rawSearchApi
+                  .getSearchMovieUpcomingByCurrentPositionAmountToLoad(
+                  currentPosition: from,
+                  amountToLoad: count,
+                )),
+          'Loading movies',
+        );
+        return <OmbiSearchHit>[
+          for (final SearchMovieViewModel m in movies)
+            if (ombiSearchHitFromMovie(m) case final OmbiSearchHit hit) hit,
+        ];
+      case OmbiDiscoverRow.popularTv:
+      case OmbiDiscoverRow.trendingTv:
+        final List<SearchTvShowViewModel> shows = requireData(
+          await (row == OmbiDiscoverRow.popularTv
+              ? _rawSearchApi.getSearchTvPopularByCurrentPositionAmountToLoad(
+                  currentPosition: from,
+                  amountToLoad: count,
+                )
+              : _rawSearchApi.getSearchTvTrendingByCurrentPositionAmountToLoad(
+                  currentPosition: from,
+                  amountToLoad: count,
+                )),
+          'Loading shows',
+        );
+        return <OmbiSearchHit>[
+          for (final SearchTvShowViewModel t in shows)
+            if (ombiSearchHitFromShow(t) case final OmbiSearchHit hit) hit,
+        ];
+    }
+  }
+
   /// Whether the title is requested, approved, available or denied.
   Future<OmbiTitleState> titleState(OmbiMediaKind kind, int tmdbId) async {
     final String id = '$tmdbId';

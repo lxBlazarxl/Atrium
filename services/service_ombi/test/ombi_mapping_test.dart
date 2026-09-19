@@ -26,7 +26,10 @@ void main() {
       OmbiRequestStatus of(Map<String, dynamic> json) =>
           ombiRequestFromMovie(MovieRequests.fromJson(json)).status;
 
-      expect(of(movieRequestJson(approved: true)), OmbiRequestStatus.processing);
+      expect(
+        of(movieRequestJson(approved: true)),
+        OmbiRequestStatus.processing,
+      );
       expect(
         of(movieRequestJson(approved: true, available: true)),
         OmbiRequestStatus.available,
@@ -161,6 +164,32 @@ void main() {
 
     expect(s.requested, isTrue);
     expect(s.canRequest, isFalse);
+  });
+
+  test('a Discover movie is found by its TMDB id and keeps its state', () {
+    final OmbiSearchHit hit = ombiSearchHitFromMovie(
+      SearchMovieViewModel.fromJson(discoverMovieJson(requested: true)),
+    )!;
+
+    expect(hit.tmdbId, 969681);
+    expect(hit.kind, OmbiMediaKind.movie);
+    expect(hit.title, 'Spider-Man: Brand New Day');
+    expect(hit.requested, isTrue);
+    expect(hit.available, isFalse);
+  });
+
+  test('a Discover show takes its TMDB id from id, theMovieDbId being empty',
+      () {
+    final OmbiSearchHit hit = ombiSearchHitFromShow(
+      SearchTvShowViewModel.fromJson(discoverShowJson()),
+    )!;
+
+    expect(hit.tmdbId, 275102);
+    expect(hit.kind, OmbiMediaKind.tv);
+    expect(
+      hit.posterUrl,
+      'https://image.tmdb.org/t/p/w185/pJsIzlTjmx07ilwEkl0cglrMVa1.jpg',
+    );
   });
 
   test('poster paths become URLs, full URLs stay as they are', () {

@@ -93,6 +93,17 @@ void main() {
       );
     });
 
+    test('a failed Discover list points at the movie database too', () {
+      expect(
+        describeOmbiFailure(
+          const OmbiException('boom', statusCode: 500),
+          browsing: true,
+        ),
+        'Ombi could not load this list right now. It could not reach its '
+        'movie database.',
+      );
+    });
+
     test('anything else names the status', () {
       expect(
         describeOmbiFailure(const OmbiException('boom', statusCode: 502)),

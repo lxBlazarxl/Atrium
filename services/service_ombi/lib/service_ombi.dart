@@ -1,6 +1,7 @@
 export 'src/generated/generated.dart';
 export 'src/models/ombi_mapping.dart';
 export 'src/models/ombi_models.dart';
+export 'src/ombi_discover_tab.dart';
 export 'src/ombi_failure.dart';
 export 'src/ombi_home.dart';
 export 'src/ombi_providers.dart';
