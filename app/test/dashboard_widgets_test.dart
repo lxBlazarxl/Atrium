@@ -380,13 +380,64 @@ void main() {
     );
 
     expect(find.text('5 requested'), findsOneWidget);
-    expect(find.text('Needs approval'), findsNWidgets(2));
+    // Each service keeps its own words for the same state: Seerr's row is as
+    // it was, Ombi's reads like Ombi's Recently Requested cards.
+    expect(find.text('Needs approval'), findsOneWidget);
+    expect(find.text('Pending'), findsOneWidget);
     expect(find.textContaining('alice'), findsOneWidget);
     // Ombi's request is a month newer, so it comes first.
     expect(
       tester.getTopLeft(find.textContaining('Arrival')).dy,
       lessThan(tester.getTopLeft(find.textContaining('The Matrix')).dy),
     );
+  });
+
+  testWidgets('Ombi rows read like Ombi Recently Requested cards',
+      (WidgetTester tester) async {
+    final Instance ombi = makeInstance(ServiceKind.ombi);
+    await pumpBody(
+      tester,
+      <Override>[
+        ombiCountsProvider(ombi).overrideWith(
+          (Ref ref) async => const OmbiCounts(approved: 2, available: 1),
+        ),
+        ombiRecentRequestsProvider(ombi).overrideWith(
+          (Ref ref) async => <OmbiRequest>[
+            OmbiRequest(
+              id: 1,
+              kind: OmbiMediaKind.movie,
+              title: 'Hacksaw Ridge',
+              status: OmbiRequestStatus.processing,
+              requestedAt: DateTime.utc(2026, 9, 3),
+            ),
+            OmbiRequest(
+              id: 2,
+              kind: OmbiMediaKind.tv,
+              title: 'Severance',
+              status: OmbiRequestStatus.processing,
+              partlyAvailable: true,
+              requestedAt: DateTime.utc(2026, 9, 2),
+            ),
+            // Denied, then found by Ombi's sync: the cards still say Denied.
+            OmbiRequest(
+              id: 3,
+              kind: OmbiMediaKind.movie,
+              title: 'Arrival',
+              status: OmbiRequestStatus.available,
+              denied: true,
+              requestedAt: DateTime.utc(2026, 9),
+            ),
+          ],
+        ),
+      ],
+      DashboardRequestsWidget(instances: <Instance>[ombi]),
+      pumps: 3,
+    );
+
+    expect(find.text('Approved'), findsOneWidget);
+    expect(find.text('Partially Available'), findsOneWidget);
+    expect(find.text('Denied'), findsOneWidget);
+    expect(find.text('Processing'), findsNothing);
   });
 
   testWidgets('DashboardServerInfoWidget shows CPU, memory, GPU and disks',

@@ -223,7 +223,8 @@ class _SeerrRequestRow extends ConsumerWidget {
   }
 }
 
-/// An Ombi request. Ombi's lists carry the title and poster already.
+/// An Ombi request, worded the way Ombi's own Recently Requested cards word
+/// it. Ombi's lists carry the title and poster already.
 class _OmbiRequestRow extends StatelessWidget {
   const _OmbiRequestRow({required this.entry});
 
@@ -233,11 +234,14 @@ class _OmbiRequestRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final ColorScheme cs = Theme.of(context).colorScheme;
     final OmbiRequest r = entry.request;
-    final (String label, Color color) = switch (r.status) {
-      OmbiRequestStatus.pending => ('Needs approval', cs.primary),
-      OmbiRequestStatus.processing => ('Processing', cs.secondary),
-      OmbiRequestStatus.available => ('Available', cs.tertiary),
-      OmbiRequestStatus.denied => ('Declined', cs.onSurfaceVariant),
+    final String label = ombiRecentStatusLabel(r.recentStatus);
+    final Color color = switch (r.recentStatus) {
+      OmbiRecentStatus.pending => cs.primary,
+      OmbiRecentStatus.approved => cs.secondary,
+      OmbiRecentStatus.partlyAvailable ||
+      OmbiRecentStatus.available =>
+        cs.tertiary,
+      OmbiRecentStatus.denied => cs.onSurfaceVariant,
     };
     return _RequestRowShell(
       instance: entry.instance,
