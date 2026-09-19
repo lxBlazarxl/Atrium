@@ -21,6 +21,7 @@ import 'package:dio/dio.dart';
 /// | Transmission             | HTTP Basic, and only when configured        |
 /// | Deluge                   | `Cookie: _session_id=…` after `auth.login`  |
 /// | Navidrome                | `?u=` + `?t=` salted MD5 + `?s=` query params |
+/// | Ombi                     | `ApiKey` header                             |
 ///
 /// `Jellyfin/Emby` and `qBittorrent` both use the user/password auth flow:
 /// the session token / cookie is acquired out of band and stored in the
@@ -51,6 +52,9 @@ class AuthInterceptor extends Interceptor {
             if (kind == ServiceKind.sabnzbd) {
               options.queryParameters['output'] = 'json';
             }
+          case ServiceKind.ombi:
+            // Ombi reads only its own header; X-Api-Key gets a 401.
+            options.headers['ApiKey'] = apiKey;
           case _:
             options.headers['X-Api-Key'] = apiKey;
         }

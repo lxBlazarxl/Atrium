@@ -20,6 +20,8 @@ Set<String> serviceAuthHeaderNames(ServiceKind kind, InstanceAuth auth) {
         case ServiceKind.sabnzbd || ServiceKind.tautulli:
           // Query parameter, not a header, so nothing collides.
           return const <String>{};
+        case ServiceKind.ombi:
+          return const <String>{'ApiKey'};
         case _:
           return const <String>{'X-Api-Key'};
       }

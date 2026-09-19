@@ -38,6 +38,14 @@ enum _HealthMode {
       return (path: 'api/system/status', mode: _HealthMode.authed);
     case ServiceKind.seerr:
       return (path: 'api/v1/status', mode: _HealthMode.authed);
+    case ServiceKind.ombi:
+      // Status, about and the request count answer anyone, so none of them
+      // can prove a key works. The smallest protected read is one movie
+      // request.
+      return (
+        path: 'api/v2/Requests/movie/1/0/requestedDate/desc',
+        mode: _HealthMode.authed,
+      );
     case ServiceKind.tracearr:
       return (path: 'api/v2/public/docs', mode: _HealthMode.authed);
     case ServiceKind.gluetun:
