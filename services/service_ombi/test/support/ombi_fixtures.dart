@@ -10,6 +10,7 @@ const Map<String, dynamic> aliceJson = <String, dynamic>{
   'userName': 'alice',
   'alias': null,
   'userAlias': 'alice',
+  'userType': 1,
 };
 
 Map<String, dynamic> movieRequestJson({
@@ -34,6 +35,9 @@ Map<String, dynamic> movieRequestJson({
       'requestedByAlias': null,
       'requestedUser': aliceJson,
       'canApprove': true,
+      // Enums arrive as integers, not strings.
+      'requestType': 1,
+      'source': 0,
     };
 
 Map<String, dynamic> childRequestJson({
@@ -52,6 +56,8 @@ Map<String, dynamic> childRequestJson({
       'requestedByAlias': null,
       'requestedUser': aliceJson,
       'releaseYear': '2022-02-18T00:00:00',
+      'requestType': 0,
+      'seriesType': 0,
       'parentRequest': <String, dynamic>{
         'id': 3,
         'title': 'Severance',
@@ -145,6 +151,7 @@ Map<String, dynamic> tvDetailJson({
       'fullyAvailable': fullyAvailable,
       'denied': false,
       'deniedReason': null,
+      'type': 0,
     };
 
 /// A `RequestEngineResult` that worked.
