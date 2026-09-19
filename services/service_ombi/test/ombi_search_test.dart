@@ -123,7 +123,19 @@ void main() {
     );
   });
 
-  testWidgets('a failed search blames the movie database and offers Retry',
+  testWidgets('a search that fails once is quietly tried again',
+      (WidgetTester tester) async {
+    // TMDB behind Ombi flakes often enough that one retry saves a tap.
+    fake.failNext('POST', '/api/v2/Search/multi/arrival', 1);
+    await search(tester, 'arrival');
+    await tester.pump(const Duration(seconds: 1));
+    await settle(tester);
+
+    expect(find.text('Arrival'), findsOneWidget);
+    expect(fake.to('POST', '/api/v2/Search/multi/arrival'), hasLength(2));
+  });
+
+  testWidgets('a search that keeps failing gives up within seconds',
       (WidgetTester tester) async {
     fake.on(
       'POST',
@@ -132,7 +144,12 @@ void main() {
       status: 500,
     );
     await search(tester, 'arrival');
+    // Two retries, half a second apart, then the error. Riverpod's own
+    // default would keep a spinner up for about half a minute.
+    await tester.pump(const Duration(seconds: 2));
+    await settle(tester);
 
+    expect(fake.to('POST', '/api/v2/Search/multi/arrival'), hasLength(3));
     expect(
       find.text(
         'Ombi could not search right now. It could not reach its movie '

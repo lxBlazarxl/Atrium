@@ -18,12 +18,20 @@ class SeenRequest {
 class FakeOmbi implements HttpClientAdapter {
   final Map<String, Object?> _bodies = <String, Object?>{};
   final Map<String, int> _statuses = <String, int>{};
+  final Map<String, int> _failures = <String, int>{};
   final List<SeenRequest> seen = <SeenRequest>[];
 
   /// Answers `method path` with [json], encoded, and [status].
   void on(String method, String path, Object? json, {int status = 200}) {
     _bodies['$method $path'] = json;
     _statuses['$method $path'] = status;
+  }
+
+  /// Makes the next [times] requests to `method path` fail with [status]
+  /// before the configured answer comes back, the way a flaky upstream does.
+  void failNext(String method, String path, int times, {int status = 500}) {
+    _failures['$method $path'] = times;
+    _statuses['fail $method $path'] = status;
   }
 
   /// The requests made to [path] with [method].
@@ -41,6 +49,15 @@ class FakeOmbi implements HttpClientAdapter {
     final String path = options.uri.path;
     seen.add(SeenRequest(options.method, path, options.data, options.headers));
     final String key = '${options.method} $path';
+    final int failures = _failures[key] ?? 0;
+    if (failures > 0) {
+      _failures[key] = failures - 1;
+      return ResponseBody.fromString(
+        '{"error":"upstream failed"}',
+        _statuses['fail $key']!,
+        headers: _json,
+      );
+    }
     if (!_bodies.containsKey(key)) {
       return ResponseBody.fromString(
         '{"error":"no route"}',

@@ -129,6 +129,21 @@ class OmbiRequestList extends AsyncNotifier<OmbiRequestListState> {
   }
 }
 
+/// How search and title lookups retry.
+///
+/// Both depend on Ombi reaching TheMovieDB, which on some networks fails
+/// often enough that a quick retry saves a tap. But Riverpod's default keeps
+/// going for about half a minute, all of it behind a spinner, before the
+/// error and its Retry button appear. Two quick tries, then the truth. A
+/// refused key will not change its mind, so it is not retried at all.
+Duration? _tmdbBackedRetry(int retryCount, Object error) {
+  final int? status = error is OmbiException ? error.statusCode : null;
+  if (retryCount >= 2 || status == 401 || status == 403) {
+    return null;
+  }
+  return const Duration(milliseconds: 500);
+}
+
 typedef OmbiSearchKey = ({Instance instance, String query});
 
 final ombiSearchProvider =
@@ -145,7 +160,9 @@ final ombiSearchProvider =
   final OmbiClient client =
       await ref.watch(ombiClientProvider(key.instance).future);
   return client.searchService.search(key.query);
-});
+},
+  retry: _tmdbBackedRetry,
+);
 
 typedef OmbiTitleKey = ({Instance instance, OmbiMediaKind kind, int tmdbId});
 
@@ -157,7 +174,9 @@ final ombiTitleStateProvider =
   final OmbiClient client =
       await ref.watch(ombiClientProvider(key.instance).future);
   return client.searchService.titleState(key.kind, key.tmdbId);
-});
+},
+  retry: _tmdbBackedRetry,
+);
 
 /// Runs [action] against the instance's Ombi, then refreshes everything that
 /// shows its requests.
