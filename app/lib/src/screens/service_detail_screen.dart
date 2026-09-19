@@ -29,6 +29,7 @@ import 'package:service_lidarr/service_lidarr.dart';
 import 'package:service_unraid/service_unraid.dart';
 import 'package:service_gluetun/service_gluetun.dart';
 import 'package:service_navidrome/service_navidrome.dart';
+import 'package:service_ombi/service_ombi.dart';
 
 import 'dashboard_screen.dart';
 
@@ -180,7 +181,8 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
                   instance.kind == ServiceKind.jellyfin ||
                   instance.kind == ServiceKind.plex ||
                   instance.kind == ServiceKind.seerr ||
-                  instance.kind == ServiceKind.navidrome)
+                  instance.kind == ServiceKind.navidrome ||
+                  instance.kind == ServiceKind.ombi)
                 IconButton(
                   tooltip: 'Search',
                   icon: const Icon(Icons.search),
@@ -200,6 +202,8 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
                           SeerrSearchDelegate(instance: instance),
                         ServiceKind.navidrome =>
                           NavidromeSearchDelegate(instance: instance),
+                        ServiceKind.ombi =>
+                          OmbiSearchDelegate(instance: instance),
                         _ => JellyfinSearchDelegate(instance: instance),
                       },
                     );
@@ -331,6 +335,7 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
       ServiceKind.speedtestTracker => SpeedtestTrackerHome(instance: instance),
       ServiceKind.gluetun => GluetunHome(instance: instance),
       ServiceKind.navidrome => const SizedBox.shrink(),
+      ServiceKind.ombi => OmbiHome(instance: instance),
     };
   }
 }
