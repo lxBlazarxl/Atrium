@@ -127,9 +127,10 @@ class _OmbiRequestSheetState extends ConsumerState<OmbiRequestSheet> {
     );
   }
 
+  /// Worded the way Ombi's own title page words it.
   Widget _body(ThemeData theme, OmbiTitleState state) {
     if (state.available) {
-      return _line(theme, Icons.check_circle_outline, 'Already available');
+      return _line(theme, Icons.check_circle_outline, 'Available');
     }
     if (state.denied) {
       final String? reason = state.deniedReason;
@@ -140,11 +141,7 @@ class _OmbiRequestSheetState extends ConsumerState<OmbiRequestSheet> {
       );
     }
     if (state.requested) {
-      return _line(
-        theme,
-        Icons.schedule,
-        state.approved ? 'Requested and approved' : 'Already requested',
-      );
+      return _line(theme, Icons.schedule, 'Requested');
     }
 
     final OmbiSearchHit hit = widget.hit;
@@ -183,7 +180,7 @@ class _OmbiRequestSheetState extends ConsumerState<OmbiRequestSheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         if (state.partlyAvailable) ...<Widget>[
-          _line(theme, Icons.incomplete_circle, 'Partly available'),
+          _line(theme, Icons.incomplete_circle, 'Partially Available'),
           const SizedBox(height: Insets.sm),
         ],
         for (final Widget button in buttons) ...<Widget>[

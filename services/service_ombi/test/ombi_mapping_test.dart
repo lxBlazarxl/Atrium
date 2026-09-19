@@ -22,10 +22,12 @@ void main() {
       );
     });
 
-    test('status follows approved, available and denied, denial first', () {
+    test('status follows Ombi request list: available, denied, approved',
+        () {
       OmbiRequestStatus of(Map<String, dynamic> json) =>
           ombiRequestFromMovie(MovieRequests.fromJson(json)).status;
 
+      expect(of(movieRequestJson()), OmbiRequestStatus.pending);
       expect(
         of(movieRequestJson(approved: true)),
         OmbiRequestStatus.processing,
@@ -37,6 +39,69 @@ void main() {
       expect(
         of(movieRequestJson(approved: true, denied: true)),
         OmbiRequestStatus.denied,
+      );
+      // Ombi's sync can find a title it had denied. Its request list then
+      // says Available.
+      expect(
+        of(movieRequestJson(denied: true, available: true)),
+        OmbiRequestStatus.available,
+      );
+    });
+
+    test('the Recently Requested status puts a denial first', () {
+      OmbiRecentStatus of(Map<String, dynamic> json) =>
+          ombiRequestFromMovie(MovieRequests.fromJson(json)).recentStatus;
+
+      expect(of(movieRequestJson()), OmbiRecentStatus.pending);
+      expect(of(movieRequestJson(approved: true)), OmbiRecentStatus.approved);
+      expect(
+        of(movieRequestJson(approved: true, available: true)),
+        OmbiRecentStatus.available,
+      );
+      expect(
+        of(movieRequestJson(denied: true, available: true)),
+        OmbiRecentStatus.denied,
+      );
+    });
+
+    test('a show with some requested episodes in is partly available', () {
+      OmbiRequest of(Map<String, dynamic> json) =>
+          ombiRequestFromChild(ChildRequests.fromJson(json));
+
+      final OmbiRequest partial =
+          of(childRequestJson(approved: true, episodesIn: <bool>[true, false]));
+      expect(partial.recentStatus, OmbiRecentStatus.partlyAvailable);
+      // Ombi's request list has no partial state of its own.
+      expect(partial.status, OmbiRequestStatus.processing);
+
+      expect(
+        of(childRequestJson(approved: true, episodesIn: <bool>[false, false]))
+            .recentStatus,
+        OmbiRecentStatus.approved,
+      );
+      expect(
+        of(
+          childRequestJson(
+            approved: true,
+            available: true,
+            episodesIn: <bool>[true, true],
+          ),
+        ).recentStatus,
+        OmbiRecentStatus.available,
+      );
+    });
+
+    test('a movie with a 4K request says so, others do not', () {
+      expect(
+        ombiRequestFromMovie(
+          MovieRequests.fromJson(movieRequestJson(has4KRequest: true)),
+        ).has4K,
+        isTrue,
+      );
+      expect(
+        ombiRequestFromMovie(MovieRequests.fromJson(movieRequestJson()))
+            .has4K,
+        isFalse,
       );
     });
 

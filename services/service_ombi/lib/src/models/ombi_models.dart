@@ -13,6 +13,11 @@ enum OmbiTvSeasons { all, first, latest }
 /// The rows on the Discover tab, each one of Ombi's own lists.
 enum OmbiDiscoverRow { popularMovies, upcomingMovies, popularTv, trendingTv }
 
+/// Where a request stands in the words of Ombi's Recently Requested cards,
+/// which the dashboard mirrors. They differ from its request list's: a
+/// denial wins over availability, and a show can be partly in.
+enum OmbiRecentStatus { pending, approved, partlyAvailable, available, denied }
+
 /// One request as the screens use it, whatever kind it is.
 class OmbiRequest {
   const OmbiRequest({
@@ -25,6 +30,9 @@ class OmbiRequest {
     this.requestedBy,
     this.requestedAt,
     this.deniedReason,
+    this.denied = false,
+    this.partlyAvailable = false,
+    this.has4K = false,
   });
 
   /// What approve, deny and delete act on. For TV this is the child
@@ -32,12 +40,42 @@ class OmbiRequest {
   final int id;
   final OmbiMediaKind kind;
   final String title;
+
+  /// Where the request stands as Ombi's request list puts it.
   final OmbiRequestStatus status;
   final int? year;
   final String? posterUrl;
   final String? requestedBy;
   final DateTime? requestedAt;
   final String? deniedReason;
+
+  /// Ombi's own denied flag. [status] usually says the same, but Ombi's sync
+  /// can later find a title it had denied, and then its list says Available
+  /// while its cards still say Denied.
+  final bool denied;
+
+  /// Some requested episodes are in and the rest are not. TV only.
+  final bool partlyAvailable;
+
+  /// A 4K copy was requested too, which Ombi tags on the row. Movies only.
+  final bool has4K;
+
+  /// Where the request stands as Ombi's Recently Requested cards put it.
+  OmbiRecentStatus get recentStatus {
+    if (denied || status == OmbiRequestStatus.denied) {
+      return OmbiRecentStatus.denied;
+    }
+    if (status == OmbiRequestStatus.available) {
+      return OmbiRecentStatus.available;
+    }
+    if (partlyAvailable) {
+      return OmbiRecentStatus.partlyAvailable;
+    }
+    if (status == OmbiRequestStatus.processing) {
+      return OmbiRecentStatus.approved;
+    }
+    return OmbiRecentStatus.pending;
+  }
 }
 
 /// A page of requests and how many there are in all.

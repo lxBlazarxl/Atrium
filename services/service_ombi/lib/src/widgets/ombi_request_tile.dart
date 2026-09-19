@@ -68,7 +68,14 @@ class OmbiRequestTile extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: Insets.xs),
-                OmbiStatusBadge(status: request.status),
+                Wrap(
+                  spacing: Insets.xs,
+                  runSpacing: Insets.xs,
+                  children: <Widget>[
+                    OmbiStatusBadge(status: request.status),
+                    if (request.has4K) const OmbiFourKBadge(),
+                  ],
+                ),
                 if (request.deniedReason != null) ...<Widget>[
                   const SizedBox(height: Insets.xs),
                   Text(

@@ -49,9 +49,34 @@ void main() {
 
     expect(find.textContaining('Arrival'), findsOneWidget);
     expect(find.textContaining('alice'), findsOneWidget);
-    expect(find.text('Pending'), findsWidgets);
+    expect(find.text('Pending Approval'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Approve'), findsOneWidget);
     expect(find.widgetWithText(OutlinedButton, 'Deny'), findsOneWidget);
+  });
+
+  testWidgets('rows read like Ombi request list, 4K tag included',
+      (WidgetTester tester) async {
+    fake
+      ..on(
+        'GET',
+        _pendingMovies,
+        pageJson(<Map<String, dynamic>>[movieRequestJson(has4KRequest: true)]),
+      )
+      ..on(
+        'GET',
+        '/api/v2/Requests/movie/processing/25/0/requestedDate/desc',
+        pageJson(<Map<String, dynamic>>[movieRequestJson(approved: true)]),
+      );
+    await open(tester);
+
+    expect(find.text('Pending Approval'), findsOneWidget);
+    expect(find.text('4K'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Processing'));
+    await settle(tester);
+
+    expect(find.text('Processing Request'), findsOneWidget);
+    expect(find.text('4K'), findsNothing);
   });
 
   // Two tests rather than one re-pump: a second ProviderScope in the same

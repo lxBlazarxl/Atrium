@@ -94,8 +94,40 @@ void main() {
     await tester.tap(find.text('Arrival'));
     await settle(tester);
 
-    expect(find.text('Already requested'), findsOneWidget);
+    // Ombi's own title page says Requested, approved or not.
+    expect(find.text('Requested'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Request'), findsNothing);
+  });
+
+  testWidgets('an available title says Available', (WidgetTester tester) async {
+    fake.on(
+      'GET',
+      '/api/v2/Search/movie/329865',
+      movieDetailJson(available: true),
+    );
+    await search(tester, 'arrival');
+
+    await tester.tap(find.text('Arrival'));
+    await settle(tester);
+
+    expect(find.text('Available'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'Request'), findsNothing);
+  });
+
+  testWidgets('a show partly in says so and can still be requested',
+      (WidgetTester tester) async {
+    fake.on(
+      'GET',
+      '/api/v2/Search/tv/moviedb/95396',
+      tvDetailJson(partlyAvailable: true),
+    );
+    await search(tester, 'arrival');
+
+    await tester.tap(find.text('Severance'));
+    await settle(tester);
+
+    expect(find.text('Partially Available'), findsOneWidget);
+    expect(find.text('All seasons'), findsOneWidget);
   });
 
   testWidgets('a show offers all, first or latest season',

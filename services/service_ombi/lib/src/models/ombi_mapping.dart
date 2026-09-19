@@ -26,6 +26,8 @@ OmbiRequest ombiRequestFromMovie(MovieRequests m) => OmbiRequest(
       requestedBy: _requester(m.requestedByAlias, m.requestedUser),
       requestedAt: _date(m.requestedDate),
       deniedReason: _text(m.deniedReason),
+      denied: m.denied ?? false,
+      has4K: m.has4KRequest ?? false,
     );
 
 /// A TV row is a child request, the one approve, deny and delete act on.
@@ -42,6 +44,13 @@ OmbiRequest ombiRequestFromChild(ChildRequests c) {
     requestedBy: _requester(c.requestedByAlias, c.requestedUser),
     requestedAt: _date(c.requestedDate),
     deniedReason: _text(c.deniedReason),
+    denied: c.denied ?? false,
+    // Ombi's own rule for its cards: any requested episode being in.
+    partlyAvailable: <EpisodeRequests>[
+      for (final SeasonRequests season
+          in c.seasonRequests ?? const <SeasonRequests>[])
+        ...?season.episodes,
+    ].any((EpisodeRequests e) => e.available ?? false),
   );
 }
 
@@ -58,6 +67,7 @@ OmbiRequest ombiRequestFromAlbum(AlbumRequest a) {
     requestedBy: _requester(a.requestedByAlias, a.requestedUser),
     requestedAt: _date(a.requestedDate),
     deniedReason: _text(a.deniedReason),
+    denied: a.denied ?? false,
   );
 }
 
@@ -147,12 +157,14 @@ OmbiTitleState ombiTitleStateFromTv(SearchFullInfoTvShowViewModel t) =>
       deniedReason: _text(t.deniedReason),
     );
 
+/// The order Ombi's own request status takes, which its request list shows:
+/// availability first, so a denied title Ombi later found reads Available.
 OmbiRequestStatus _status(bool? approved, bool? available, bool? denied) {
-  if (denied ?? false) {
-    return OmbiRequestStatus.denied;
-  }
   if (available ?? false) {
     return OmbiRequestStatus.available;
+  }
+  if (denied ?? false) {
+    return OmbiRequestStatus.denied;
   }
   if (approved ?? false) {
     return OmbiRequestStatus.processing;

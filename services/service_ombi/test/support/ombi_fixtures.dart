@@ -19,11 +19,13 @@ Map<String, dynamic> movieRequestJson({
   bool available = false,
   bool denied = false,
   String? deniedReason,
+  bool has4KRequest = false,
   String requestedDate = '2026-09-18T10:15:00',
 }) =>
     <String, dynamic>{
       'id': id,
       'title': 'Arrival',
+      'has4KRequest': has4KRequest,
       'theMovieDbId': 329865,
       'posterPath': '/x2FJsf1ElAgr63Y3PNPtJrcmpoe.jpg',
       'releaseDate': '2016-11-10T00:00:00',
@@ -40,17 +42,22 @@ Map<String, dynamic> movieRequestJson({
       'source': 0,
     };
 
+/// [episodesIn] says, episode by episode, which requested episodes Ombi has
+/// found; they all go in one season.
 Map<String, dynamic> childRequestJson({
   int id = 21,
   bool approved = false,
+  bool available = false,
+  bool denied = false,
+  List<bool> episodesIn = const <bool>[],
   String requestedDate = '2026-09-17T08:00:00',
 }) =>
     <String, dynamic>{
       'id': id,
       'title': null,
       'approved': approved,
-      'available': false,
-      'denied': false,
+      'available': available,
+      'denied': denied,
       'deniedReason': null,
       'requestedDate': requestedDate,
       'requestedByAlias': null,
@@ -64,7 +71,27 @@ Map<String, dynamic> childRequestJson({
         'posterPath': '/pPHpeI2X1qEd1CS1SeyrdhZ4qnT.jpg',
         'releaseDate': '2022-02-18T00:00:00',
       },
-      'seasonRequests': <Object>[],
+      'seasonRequests': <Object>[
+        if (episodesIn.isNotEmpty)
+          <String, dynamic>{
+            'id': 7,
+            'seasonNumber': 1,
+            'childRequestId': id,
+            'seasonAvailable': false,
+            'episodes': <Object>[
+              for (int i = 0; i < episodesIn.length; i++)
+                <String, dynamic>{
+                  'id': 100 + i,
+                  'episodeNumber': i + 1,
+                  'title': 'Episode ${i + 1}',
+                  'requested': true,
+                  'approved': approved,
+                  'available': episodesIn[i],
+                  'denied': false,
+                },
+            ],
+          },
+      ],
     };
 
 Map<String, dynamic> albumRequestJson({int id = 31}) => <String, dynamic>{
