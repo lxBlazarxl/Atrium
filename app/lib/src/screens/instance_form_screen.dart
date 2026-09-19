@@ -72,6 +72,10 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
   bool _allowSelfSigned = false;
   bool _loaded = false;
 
+  /// Not edited here: an instance's own headers live under Settings. Held so
+  /// that saving the form, and testing it, carry them rather than drop them.
+  Map<String, String> _customHeaders = const <String, String>{};
+
   bool get _isEdit => widget.instanceId != null;
 
   @override
@@ -98,6 +102,7 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
     _urlMode = instance.urlMode;
     _allowSelfSigned = instance.allowSelfSignedCerts;
     _pollingInterval.text = instance.pollingIntervalSeconds.toString();
+    _customHeaders = instance.customHeaders;
     switch (instance.auth) {
       case InstanceAuthApiKey(:final String apiKey):
         _apiKey.text = apiKey;
@@ -145,6 +150,7 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
         auth: _buildAuth(),
         allowSelfSignedCerts: _allowSelfSigned,
         pollingIntervalSeconds: int.tryParse(_pollingInterval.text.trim()) ?? 5,
+        customHeaders: _customHeaders,
       );
 
   void _clearConnectionTest(String _) {
