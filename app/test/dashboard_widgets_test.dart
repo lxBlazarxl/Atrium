@@ -18,6 +18,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:service_jellyfin/service_jellyfin.dart' as jf;
 import 'package:service_glances/service_glances.dart';
 import 'package:service_nzbget/service_nzbget.dart';
+import 'package:service_ombi/service_ombi.dart';
 import 'package:service_qbittorrent/service_qbittorrent.dart';
 import 'package:service_radarr/service_radarr.dart';
 import 'package:service_seerr/service_seerr.dart';
@@ -330,6 +331,64 @@ void main() {
     expect(find.textContaining('Bob'), findsOneWidget);
   });
 
+  testWidgets('DashboardRequestsWidget merges Ombi with Seerr, newest first',
+      (WidgetTester tester) async {
+    final Instance seerr = makeInstance(ServiceKind.seerr);
+    final Instance ombi = makeInstance(ServiceKind.ombi);
+    await pumpBody(
+      tester,
+      <Override>[
+        seerrRequestCountsProvider(seerr).overrideWith(
+          (Ref ref) async => const SeerrCounts(total: 3, pending: 2),
+        ),
+        seerrRequestsProvider(seerr).overrideWith(
+          (Ref ref) async => const <SeerrRequest>[
+            SeerrRequest(
+              id: 1,
+              status: 1,
+              type: 'movie',
+              media: SeerrMedia(mediaType: 'movie', tmdbId: 603),
+              requestedBy: SeerrUser(displayName: 'Bob'),
+              createdAt: '2026-07-01T00:00:00Z',
+            ),
+          ],
+        ),
+        seerrMediaDetailsProvider(
+          (instance: seerr, mediaType: 'movie', tmdbId: 603),
+        ).overrideWith(
+          (Ref ref) async =>
+              const SeerrDiscoverResult(id: 603, title: 'The Matrix'),
+        ),
+        ombiCountsProvider(ombi).overrideWith(
+          (Ref ref) async => const OmbiCounts(pending: 1, approved: 1),
+        ),
+        ombiRecentRequestsProvider(ombi).overrideWith(
+          (Ref ref) async => <OmbiRequest>[
+            OmbiRequest(
+              id: 5,
+              kind: OmbiMediaKind.movie,
+              title: 'Arrival',
+              status: OmbiRequestStatus.pending,
+              requestedBy: 'alice',
+              requestedAt: DateTime.utc(2026, 8),
+            ),
+          ],
+        ),
+      ],
+      DashboardRequestsWidget(instances: <Instance>[seerr, ombi]),
+      pumps: 3,
+    );
+
+    expect(find.text('5 requested'), findsOneWidget);
+    expect(find.text('Needs approval'), findsNWidgets(2));
+    expect(find.textContaining('alice'), findsOneWidget);
+    // Ombi's request is a month newer, so it comes first.
+    expect(
+      tester.getTopLeft(find.textContaining('Arrival')).dy,
+      lessThan(tester.getTopLeft(find.textContaining('The Matrix')).dy),
+    );
+  });
+
   testWidgets('DashboardServerInfoWidget shows CPU, memory, GPU and disks',
       (WidgetTester tester) async {
     final Instance glances = makeInstance(ServiceKind.glances);
@@ -521,7 +580,8 @@ void main() {
     );
 
     expect(find.text('Needs Glances'), findsOneWidget);
-    expect(find.text('Needs Seerr'), findsOneWidget);
+    // Either request service can fill it.
+    expect(find.text('Needs Seerr or Ombi'), findsOneWidget);
     expect(find.text('Needs Speedtest Tracker'), findsOneWidget);
     // Upcoming, recently added and recently downloaded all want the same pair.
     expect(find.text('Needs Sonarr or Radarr'), findsNWidgets(3));

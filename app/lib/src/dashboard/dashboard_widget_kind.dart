@@ -72,7 +72,10 @@ extension DashboardWidgetKindX on DashboardWidgetKind {
             ServiceKind.sonarr,
             ServiceKind.radarr
           ],
-        DashboardWidgetKind.requests => const <ServiceKind>[ServiceKind.seerr],
+        DashboardWidgetKind.requests => const <ServiceKind>[
+            ServiceKind.seerr,
+            ServiceKind.ombi,
+          ],
         DashboardWidgetKind.serverInfo => const <ServiceKind>[
             ServiceKind.glances
           ],

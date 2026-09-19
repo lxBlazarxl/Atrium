@@ -10,6 +10,7 @@ import 'package:service_glances/service_glances.dart';
 import 'package:service_jellyfin/service_jellyfin.dart' as jf;
 import 'package:service_deluge/service_deluge.dart';
 import 'package:service_nzbget/service_nzbget.dart';
+import 'package:service_ombi/service_ombi.dart';
 import 'package:service_qbittorrent/service_qbittorrent.dart';
 import 'package:service_radarr/service_radarr.dart';
 import 'package:service_sabnzbd/service_sabnzbd.dart';
@@ -174,7 +175,10 @@ class DashboardBoard extends ConsumerWidget {
         );
       case DashboardWidgetKind.requests:
         return DashboardRequestsWidget(
-          instances: _byKind(instances, ServiceKind.seerr),
+          instances: <Instance>[
+            ..._byKind(instances, ServiceKind.seerr),
+            ..._byKind(instances, ServiceKind.ombi),
+          ],
         );
       case DashboardWidgetKind.serverInfo:
         return DashboardServerInfoWidget(
@@ -234,6 +238,9 @@ class DashboardBoard extends ConsumerWidget {
         case ServiceKind.seerr:
           ref.invalidate(seerrRequestCountsProvider(i));
           ref.invalidate(seerrRequestsProvider(i));
+        case ServiceKind.ombi:
+          ref.invalidate(ombiCountsProvider(i));
+          ref.invalidate(ombiRecentRequestsProvider(i));
         case ServiceKind.glances:
           ref.invalidate(glancesStatsProvider(i));
         case ServiceKind.dashdot:
