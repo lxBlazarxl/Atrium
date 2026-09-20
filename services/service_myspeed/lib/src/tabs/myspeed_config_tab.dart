@@ -64,7 +64,7 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
               _buildStorageCard(context, storageAsync, config),
               const SizedBox(height: Insets.md),
               _buildSearchBar(context),
-              const SizedBox(height: Insets.sm),
+              const SizedBox(height: Insets.md),
               _buildEntriesCard(context, filteredEntries),
             ],
           ),
@@ -159,34 +159,11 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: <Widget>[
-                Text(
-                  'Storage & Retention',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                storageAsync.maybeWhen(
-                  data: (MySpeedStorage storage) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: colors.primaryContainer.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: colors.primary.withValues(alpha: 0.3)),
-                    ),
-                    child: Text(
-                      storage.formattedSize,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colors.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  orElse: () => const SizedBox.shrink(),
-                ),
-              ],
+            Text(
+              'Storage & Retention',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
             const SizedBox(height: Insets.md),
             storageAsync.when(
@@ -313,12 +290,20 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
     final ColorScheme colors = theme.colorScheme;
 
     if (entries.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: Insets.xl),
-        child: Center(
-          child: Text(
-            'No matching configuration keys.',
-            style: theme.textTheme.bodyMedium?.copyWith(color: colors.outline),
+      return Card(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.6)),
+        ),
+        color: colors.surfaceContainer,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: Insets.xl),
+          child: Center(
+            child: Text(
+              'No matching configuration keys.',
+              style: theme.textTheme.bodyMedium?.copyWith(color: colors.outline),
+            ),
           ),
         ),
       );

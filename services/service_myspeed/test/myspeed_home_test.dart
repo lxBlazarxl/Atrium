@@ -164,7 +164,7 @@ void main() {
 
     expect(find.text('Configuration Overview'), findsOneWidget);
     expect(find.text('Storage & Retention'), findsOneWidget);
-    expect(find.text('1.0 MB'), findsNWidgets(2)); // header pill + detail row
+    expect(find.text('1.0 MB'), findsOneWidget); // detail row
     expect(find.text('42'), findsOneWidget);
     expect(find.text('0 * * * *'), findsNWidgets(2));
     expect(find.text('ookla'), findsNWidgets(2));

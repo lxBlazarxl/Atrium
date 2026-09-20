@@ -223,32 +223,13 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
                           color: colors.onSurfaceVariant,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          Flexible(
-                            child: Text(
-                              isRunning ? 'Speedtest Running' : 'Idle',
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: isRunning ? colors.primary : colors.onSurface,
-                              ),
-                            ),
-                          ),
-                          if (isRunning) ...<Widget>[
-                            const SizedBox(width: Insets.xs),
-                            SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: colors.primary,
-                              ),
-                            ),
-                          ],
-                        ],
+                      Text(
+                        isRunning ? 'Speedtest Running' : 'Idle',
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: isRunning ? colors.primary : colors.onSurface,
+                        ),
                       ),
                     ],
                   ),
