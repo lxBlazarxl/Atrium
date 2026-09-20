@@ -107,8 +107,7 @@ extension ServiceKindX on ServiceKind {
         ServiceKind.unraid ||
         ServiceKind.gluetun ||
         ServiceKind.navidrome ||
-        ServiceKind.ombi ||
-        ServiceKind.myspeed =>
+        ServiceKind.ombi =>
           true,
         _ => false,
       };

@@ -49,10 +49,10 @@ void main() {
     expect(ServiceKind.ombi.acceptsTorrents, isFalse);
   });
 
-  test('MySpeed is registered as a beta no-auth analytics service', () {
+  test('MySpeed is registered as a no-auth analytics service', () {
     expect(ServiceKind.myspeed.displayName, 'MySpeed');
     expect(ServiceKind.myspeed.tagline, 'Internet speed');
-    expect(ServiceKind.myspeed.isBeta, isTrue);
+    expect(ServiceKind.myspeed.isBeta, isFalse);
     expect(ServiceKind.myspeed.defaultPort, 5216);
     expect(ServiceKind.myspeed.authStyle, AuthStyle.none);
     expect(ServiceKind.myspeed.role, ServiceRole.analytics);
@@ -103,7 +103,7 @@ void main() {
     expect(ServiceKind.tracearr.isBeta, isFalse);
     expect(ServiceKind.unraid.isBeta, isTrue);
     expect(ServiceKind.navidrome.isBeta, isTrue);
-    expect(ServiceKind.myspeed.isBeta, isTrue);
+    expect(ServiceKind.myspeed.isBeta, isFalse);
   });
 
   test('Navidrome is registered as userPass mediaServer service', () {
