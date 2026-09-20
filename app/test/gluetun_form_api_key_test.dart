@@ -33,12 +33,12 @@ void main() {
     await tester.tap(find.byType(DropdownMenu<ServiceKind>));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('Gluetun - VPN client (Beta)'),
+      find.text('Gluetun - VPN client'),
       200,
       scrollable: find.byType(Scrollable).last,
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Gluetun - VPN client (Beta)'));
+    await tester.tap(find.text('Gluetun - VPN client'));
     await tester.pumpAndSettle();
 
     expect(keyField(tester, 'API key (optional)').validator!(''), isNull);

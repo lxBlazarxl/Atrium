@@ -118,7 +118,7 @@ void main() {
     expect(ServiceKind.gluetun.role, ServiceRole.analytics);
     expect(ServiceKind.gluetun.authStyle, AuthStyle.apiKey);
     expect(ServiceKind.gluetun.defaultPort, 8000);
-    expect(ServiceKind.gluetun.isBeta, isTrue);
+    expect(ServiceKind.gluetun.isBeta, isFalse);
   });
 
   test('existing services retain their default ports', () {

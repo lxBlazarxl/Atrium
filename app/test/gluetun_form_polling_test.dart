@@ -32,7 +32,7 @@ void main() {
 
   testWidgets('Gluetun offers the polling interval',
       (WidgetTester tester) async {
-    await openFormFor(tester, 'Gluetun - VPN client (Beta)');
+    await openFormFor(tester, 'Gluetun - VPN client');
     await tester.scrollUntilVisible(
       find.text('Polling Interval (seconds)'),
       200,

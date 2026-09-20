@@ -105,7 +105,6 @@ extension ServiceKindX on ServiceKind {
         ServiceKind.rtorrent ||
         ServiceKind.lidarr ||
         ServiceKind.unraid ||
-        ServiceKind.gluetun ||
         ServiceKind.navidrome ||
         ServiceKind.ombi =>
           true,
