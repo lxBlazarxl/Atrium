@@ -196,7 +196,8 @@ void main() {
       expect(_t(statusCode: 2).stateString, 'Verifying local data');
       expect(_t(statusCode: 3).stateString, 'Queued for download');
       expect(_t(statusCode: 5).stateString, 'Queued for seeding');
-      expect(_t(statusCode: 6).stateString, 'Seeding');
+      // Seeding is the helper's default status.
+      expect(_t().stateString, 'Seeding');
       expect(_t(statusCode: 42).stateString, 'Unknown');
     });
 
@@ -394,12 +395,59 @@ void main() {
     });
   });
 
+  group('TransmissionFilterMode', () {
+    test('uses the web UI definitions', () {
+      final TransmissionTorrent active =
+          _t(statusCode: 0).copyWith(peersSendingToUs: 1);
+      final TransmissionTorrent quiet = _t();
+      expect(TransmissionFilterMode.active.matches(active), isTrue);
+      expect(TransmissionFilterMode.active.matches(_t(statusCode: 2)), isTrue);
+      expect(TransmissionFilterMode.active.matches(quiet), isFalse);
+
+      expect(
+        TransmissionFilterMode.downloading.matches(_t(statusCode: 3)),
+        isTrue,
+      );
+      expect(
+        TransmissionFilterMode.downloading.matches(_t(statusCode: 4)),
+        isTrue,
+      );
+      expect(TransmissionFilterMode.downloading.matches(_t()), isFalse);
+      expect(TransmissionFilterMode.seeding.matches(_t(statusCode: 5)), isTrue);
+      expect(TransmissionFilterMode.seeding.matches(_t()), isTrue);
+      expect(TransmissionFilterMode.paused.matches(_t(statusCode: 0)), isTrue);
+      expect(TransmissionFilterMode.paused.matches(_t(statusCode: 4)), isFalse);
+      expect(
+        TransmissionFilterMode.finished.matches(_t(isFinished: true)),
+        isTrue,
+      );
+      expect(TransmissionFilterMode.finished.matches(_t()), isFalse);
+      expect(TransmissionFilterMode.error.matches(_t(error: 2)), isTrue);
+      expect(TransmissionFilterMode.error.matches(_t()), isFalse);
+      final TransmissionTorrent private = _t().copyWith(isPrivate: true);
+      expect(TransmissionFilterMode.private.matches(private), isTrue);
+      expect(TransmissionFilterMode.public.matches(private), isFalse);
+      expect(TransmissionFilterMode.public.matches(_t()), isTrue);
+      expect(TransmissionFilterMode.all.matches(private), isTrue);
+    });
+  });
+
   group('filterTransmissionTorrents', () {
     final List<TransmissionTorrent> torrents = <TransmissionTorrent>[
-      _t(hash: 'a', statusCode: 4, labels: const <String>['linux']),
+      _t(hash: 'a', name: 'Alpha', statusCode: 4, labels: const <String>['linux'])
+          .copyWith(
+        trackers: const <TransmissionTrackerRef>[
+          TransmissionTrackerRef(announce: 'http://t1.example.org/announce'),
+        ],
+      ),
       // statusCode 6 (seeding) is the helper default.
-      _t(hash: 'b'),
-      _t(hash: 'c', statusCode: 0, labels: const <String>['linux', 'iso']),
+      _t(hash: 'b', name: 'Beta'),
+      _t(
+        hash: 'c',
+        name: 'Gamma',
+        statusCode: 0,
+        labels: const <String>['linux', 'iso'],
+      ),
     ];
 
     test('the default filter keeps everything', () {
@@ -409,10 +457,10 @@ void main() {
       );
     });
 
-    test('narrows by status', () {
+    test('narrows by mode', () {
       final List<TransmissionTorrent> out = filterTransmissionTorrents(
         torrents,
-        const TransmissionFilter(status: TransmissionStatus.seeding),
+        const TransmissionFilter(mode: TransmissionFilterMode.seeding),
       );
       expect(out.single.hashString, 'b');
     });
@@ -428,18 +476,81 @@ void main() {
       );
     });
 
-    test('clearStatus drops the status without touching the label', () {
+    test('narrows by tracker host', () {
+      final List<TransmissionTorrent> out = filterTransmissionTorrents(
+        torrents,
+        const TransmissionFilter(tracker: 't1.example.org'),
+      );
+      expect(out.single.hashString, 'a');
+    });
+
+    test('search matches the name or a label, case-insensitively', () {
+      expect(
+        filterTransmissionTorrents(
+          torrents,
+          const TransmissionFilter(),
+          search: 'ALPHA',
+        ).single.hashString,
+        'a',
+      );
+      expect(
+        filterTransmissionTorrents(
+          torrents,
+          const TransmissionFilter(),
+          search: 'iso',
+        ).single.hashString,
+        'c',
+      );
+    });
+
+    test('copyWith changes one thing at a time', () {
       const TransmissionFilter f = TransmissionFilter(
-        status: TransmissionStatus.seeding,
+        mode: TransmissionFilterMode.seeding,
         label: 'linux',
       );
-      final TransmissionFilter cleared = f.copyWith(clearStatus: true);
-      expect(cleared.status, isNull);
+      final TransmissionFilter cleared =
+          f.copyWith(mode: TransmissionFilterMode.all);
+      expect(cleared.mode, TransmissionFilterMode.all);
       expect(cleared.label, 'linux');
+      expect(cleared.isActive, isTrue);
+    });
+  });
+
+  group('transmissionTrackers', () {
+    test('collects a sorted, de-duplicated set of hosts', () {
+      const TransmissionTrackerRef debian = TransmissionTrackerRef(
+        announce: 'http://x/announce',
+        sitename: 'debian',
+      );
+      final List<TransmissionTorrent> torrents = <TransmissionTorrent>[
+        _t(hash: 'a').copyWith(trackers: const <TransmissionTrackerRef>[debian]),
+        _t(hash: 'b').copyWith(
+          trackers: const <TransmissionTrackerRef>[
+            debian,
+            TransmissionTrackerRef(announce: 'udp://tracker.example.org:1337'),
+          ],
+        ),
+      ];
+      expect(
+        transmissionTrackers(torrents),
+        <String>['debian', 'tracker.example.org'],
+      );
     });
   });
 
   group('sortTransmissionTorrents', () {
+    test('last activity puts the most recent first before the toggle', () {
+      final List<TransmissionTorrent> out = sortTransmissionTorrents(
+        <TransmissionTorrent>[
+          _t(hash: 'old').copyWith(activityDate: 100),
+          _t(hash: 'new').copyWith(activityDate: 200),
+        ],
+        TransmissionSortField.activity,
+        descending: false,
+      );
+      expect(out.first.hashString, 'new');
+    });
+
     test('pushes unqueued torrents to the end of a queue sort', () {
       final List<TransmissionTorrent> out = sortTransmissionTorrents(
         <TransmissionTorrent>[

@@ -15,5 +15,7 @@ export 'src/transmission_api.dart';
 export 'src/transmission_detail_screen.dart';
 export 'src/transmission_format.dart';
 export 'src/transmission_home.dart';
+export 'src/transmission_info_strings.dart';
 export 'src/transmission_providers.dart';
+export 'src/transmission_row_strings.dart';
 export 'src/transmission_speed_dialog.dart';

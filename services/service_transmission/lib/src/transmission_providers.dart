@@ -33,37 +33,85 @@ final transmissionApiProvider =
   return TransmissionApi(dio);
 });
 
-/// Which torrents the list is narrowed to.
+/// The web UI's filter modes, in its order, with its definitions.
+enum TransmissionFilterMode {
+  all('All'),
+  active('Active'),
+  downloading('Downloading'),
+  seeding('Seeding'),
+  paused('Paused'),
+  finished('Finished'),
+  error('Error'),
+  private('Private'),
+  public('Public');
+
+  const TransmissionFilterMode(this.label);
+
+  final String label;
+
+  bool matches(TransmissionTorrent t) => switch (this) {
+        TransmissionFilterMode.all => true,
+        // Moving bytes with anyone, or busy verifying.
+        TransmissionFilterMode.active => t.peersGettingFromUs > 0 ||
+            t.peersSendingToUs > 0 ||
+            t.webseedsSendingToUs > 0 ||
+            t.status == TransmissionStatus.checking,
+        TransmissionFilterMode.downloading =>
+          t.status == TransmissionStatus.downloading ||
+              t.status == TransmissionStatus.downloadWait,
+        TransmissionFilterMode.seeding =>
+          t.status == TransmissionStatus.seeding ||
+              t.status == TransmissionStatus.seedWait,
+        TransmissionFilterMode.paused => t.status.isStopped,
+        TransmissionFilterMode.finished => t.isFinished,
+        TransmissionFilterMode.error => t.error != 0,
+        TransmissionFilterMode.private => t.isPrivate,
+        TransmissionFilterMode.public => !t.isPrivate,
+      };
+}
+
+/// Which torrents the list is narrowed to. Everything combines with AND.
 @immutable
 class TransmissionFilter {
-  const TransmissionFilter({this.status, this.label = ''});
+  const TransmissionFilter({
+    this.mode = TransmissionFilterMode.all,
+    this.tracker = '',
+    this.label = '',
+  });
 
-  /// Null means every status.
-  final TransmissionStatus? status;
+  final TransmissionFilterMode mode;
+
+  /// A tracker host from [transmissionTrackers]; empty means any.
+  final String tracker;
 
   /// Empty means every label.
   final String label;
 
-  bool get isActive => status != null || label.isNotEmpty;
+  bool get isActive =>
+      mode != TransmissionFilterMode.all ||
+      tracker.isNotEmpty ||
+      label.isNotEmpty;
 
   TransmissionFilter copyWith({
-    TransmissionStatus? status,
-    bool clearStatus = false,
+    TransmissionFilterMode? mode,
+    String? tracker,
     String? label,
   }) =>
       TransmissionFilter(
-        status: clearStatus ? null : (status ?? this.status),
+        mode: mode ?? this.mode,
+        tracker: tracker ?? this.tracker,
         label: label ?? this.label,
       );
 
   @override
   bool operator ==(Object other) =>
       other is TransmissionFilter &&
-      other.status == status &&
+      other.mode == mode &&
+      other.tracker == tracker &&
       other.label == label;
 
   @override
-  int get hashCode => Object.hash(status, label);
+  int get hashCode => Object.hash(mode, tracker, label);
 }
 
 final transmissionFilterProvider =
@@ -82,6 +130,7 @@ enum TransmissionSortField {
   upSpeed,
   ratio,
   added,
+  activity,
 }
 
 extension TransmissionSortFieldX on TransmissionSortField {
@@ -95,6 +144,7 @@ extension TransmissionSortFieldX on TransmissionSortField {
         TransmissionSortField.upSpeed => 'Up speed',
         TransmissionSortField.ratio => 'Ratio',
         TransmissionSortField.added => 'Date added',
+        TransmissionSortField.activity => 'Last activity',
       };
 }
 
@@ -149,16 +199,24 @@ final transmissionTorrentsProvider =
   );
 });
 
-/// Narrows a torrent list by status and label.
+/// Narrows a torrent list by mode, tracker, label and search text, the way
+/// the web UI's `Torrent.test()` combines its filters.
 List<TransmissionTorrent> filterTransmissionTorrents(
   List<TransmissionTorrent> torrents,
-  TransmissionFilter filter,
-) {
+  TransmissionFilter filter, {
+  String search = '',
+}) {
+  final String needle = search.trim().toLowerCase();
   return torrents
       .where(
         (TransmissionTorrent t) =>
-            (filter.status == null || t.status == filter.status) &&
-            (filter.label.isEmpty || t.labels.contains(filter.label)),
+            filter.mode.matches(t) &&
+            (filter.tracker.isEmpty ||
+                t.trackerHosts.contains(filter.tracker)) &&
+            (filter.label.isEmpty || t.labels.contains(filter.label)) &&
+            (needle.isEmpty ||
+                t.name.toLowerCase().contains(needle) ||
+                t.labels.any((String l) => l.toLowerCase().contains(needle))),
       )
       .toList();
 }
@@ -191,6 +249,10 @@ List<TransmissionTorrent> sortTransmissionTorrents(
           a.uploadRate.compareTo(b.uploadRate),
         TransmissionSortField.ratio => a.ratio.compareTo(b.ratio),
         TransmissionSortField.added => a.addedDate.compareTo(b.addedDate),
+        // Most recent first is the natural order, as the web UI has it; the
+        // direction toggle inverts it like any other field.
+        TransmissionSortField.activity =>
+          b.activityDate.compareTo(a.activityDate),
       };
   out.sort(
     descending
@@ -212,6 +274,16 @@ List<String> transmissionLabels(List<TransmissionTorrent> torrents) {
     labels.addAll(t.labels);
   }
   final List<String> out = labels.toList()..sort();
+  return out;
+}
+
+/// The tracker hosts in use, for the filter row, derived like the labels.
+List<String> transmissionTrackers(List<TransmissionTorrent> torrents) {
+  final Set<String> hosts = <String>{};
+  for (final TransmissionTorrent t in torrents) {
+    hosts.addAll(t.trackerHosts);
+  }
+  final List<String> out = hosts.toList()..sort();
   return out;
 }
 

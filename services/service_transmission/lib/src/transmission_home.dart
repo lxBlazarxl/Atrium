@@ -418,16 +418,6 @@ class _FilterBar extends ConsumerWidget {
         ref.watch(transmissionFilterProvider(instance));
     final List<String> labels = transmissionLabels(all);
 
-    // Only offer statuses that something is actually in, so the row does not
-    // fill up with chips that can only ever show zero.
-    final Set<TransmissionStatus> present = <TransmissionStatus>{
-      for (final TransmissionTorrent t in all) t.status,
-    };
-    final List<TransmissionStatus> statuses = <TransmissionStatus>[
-      for (final TransmissionStatus s in TransmissionStatus.values)
-        if (present.contains(s)) s,
-    ];
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -435,33 +425,17 @@ class _FilterBar extends ConsumerWidget {
           scrollDirection: Axis.horizontal,
           child: Row(
             children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.only(right: Insets.xs),
-                child: FilterChip(
-                  label: Text('All (${all.length})'),
-                  selected: filter.status == null,
-                  onSelected: (_) => ref
-                      .read(transmissionFilterProvider(instance).notifier)
-                      .update(
-                        (TransmissionFilter f) => f.copyWith(clearStatus: true),
-                      ),
-                ),
-              ),
-              for (final TransmissionStatus s in statuses)
+              for (final TransmissionFilterMode m
+                  in TransmissionFilterMode.values)
                 Padding(
                   padding: const EdgeInsets.only(right: Insets.xs),
                   child: FilterChip(
-                    label: Text(
-                      '${s.label} '
-                      '(${all.where((TransmissionTorrent t) => t.status == s).length})',
-                    ),
-                    selected: filter.status == s,
-                    onSelected: (bool on) => ref
+                    label: Text('${m.label} (${all.where(m.matches).length})'),
+                    selected: filter.mode == m,
+                    onSelected: (_) => ref
                         .read(transmissionFilterProvider(instance).notifier)
                         .update(
-                          (TransmissionFilter f) => on
-                              ? f.copyWith(status: s)
-                              : f.copyWith(clearStatus: true),
+                          (TransmissionFilter f) => f.copyWith(mode: m),
                         ),
                   ),
                 ),
