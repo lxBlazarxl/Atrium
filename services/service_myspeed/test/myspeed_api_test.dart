@@ -137,11 +137,17 @@ void main() {
       expect(status.message, 'Ookla test in progress');
     });
 
-    test('getHistory calls api/speedtests with hours param', () async {
+    test('getSpeedtests sends the window, the limit and the start cursor',
+        () async {
       final dio = Dio();
       dio.httpClientAdapter = _FakeAdapter(
         handler: (options) {
-          expect(options.queryParameters['hours'], 48);
+          expect(options.path, endsWith('api/speedtests'));
+          expect(options.queryParameters, <String, dynamic>{
+            'hours': 48,
+            'limit': 1000,
+            'start': 160,
+          });
           return ResponseBody.fromString(
             '[{"id": 1, "download": 100.0, "upload": 20.0, "ping": 10.0}]',
             200,
@@ -153,18 +159,22 @@ void main() {
       );
 
       final api = MySpeedApi(dio);
-      final history = await api.getHistory(hours: 48);
+      final history =
+          await api.getSpeedtests(hours: 48, limit: 1000, start: 160);
 
       expect(history.length, 1);
       expect(history.first.download, 100.0);
     });
 
-    test('get24HourSpeedtests calls api/speedtests with hours=24 and hour=24 params', () async {
+    test('get24HourSpeedtests asks for the whole day', () async {
+      // The server caps a list at 10 rows unless a limit is sent.
       final dio = Dio();
       dio.httpClientAdapter = _FakeAdapter(
         handler: (options) {
-          expect(options.queryParameters['hours'], 24);
-          expect(options.queryParameters['hour'], 24);
+          expect(options.queryParameters, <String, dynamic>{
+            'hours': 24,
+            'limit': MySpeedApi.pageLimit,
+          });
           return ResponseBody.fromString(
             '[{"id": 2, "download": 250.0, "upload": 50.0, "ping": 8.0}]',
             200,
@@ -203,18 +213,18 @@ void main() {
       expect(config.provider, 'ookla');
     });
 
-    test('runSpeedtest sends POST', () async {
+    test('runSpeedtest posts to api/speedtests/run', () async {
       final dio = Dio();
       dio.httpClientAdapter = _FakeAdapter(
         handler: (options) {
           expect(options.method, 'POST');
-          return ResponseBody.fromString('{"success": true}', 200);
+          expect(options.path, endsWith('api/speedtests/run'));
+          return ResponseBody.fromString('{"message": "Speedtest started"}', 200);
         },
       );
 
       final api = MySpeedApi(dio);
-      final result = await api.runSpeedtest();
-      expect(result, isTrue);
+      await api.runSpeedtest();
     });
 
     test('getSpeedtestById returns test when found', () async {

@@ -19,14 +19,29 @@ class MySpeedApi {
     return MySpeedStatus.fromResponse(response.data);
   }
 
+  /// How far back the History tab reads, in hours. The server keeps tests
+  /// for as long as its retention setting says, so this only has to be
+  /// larger than that.
+  static const int historyHours = 24 * 365 * 5;
+
+  /// The most rows one list call asks for.
+  static const int pageLimit = 1000;
+
   /// Fetches speedtests via `GET /api/speedtests`.
   ///
-  /// Optional [limit] specifies max records (e.g. 1000 for all tests, 10 for incremental diff).
-  /// Optional [afterId] specifies pagination cursor.
-  Future<List<MySpeedTest>> getSpeedtests({int? limit, int? afterId}) async {
-    final Map<String, dynamic> params = <String, dynamic>{};
-    if (limit != null) params['limit'] = limit;
-    if (afterId != null) params['afterId'] = afterId;
+  /// Left alone, the server answers with the last 24 hours and at most 10
+  /// rows. [hours] widens the window, [limit] raises the count, and [start]
+  /// pages backwards: the rows before that test id.
+  Future<List<MySpeedTest>> getSpeedtests({
+    int? hours,
+    int? limit,
+    int? start,
+  }) async {
+    final Map<String, dynamic> params = <String, dynamic>{
+      if (hours != null) 'hours': hours,
+      if (limit != null) 'limit': limit,
+      if (start != null) 'start': start,
+    };
 
     final Response<dynamic> response = await _dio.get<dynamic>(
       'api/speedtests',
@@ -36,42 +51,10 @@ class MySpeedApi {
     return _parseTests(response.data);
   }
 
-  /// Fetches speedtests from the past 24 hours via `GET /api/speedtests?hours=24`.
-  ///
-  /// Passes `hours=24` and `hour=24` query parameters to match various MySpeed backend
-  /// implementations and performs a client-side cutoff timestamp filter as a safeguard.
-  Future<List<MySpeedTest>> get24HourSpeedtests() async {
-    final Response<dynamic> response = await _dio.get<dynamic>(
-      'api/speedtests',
-      queryParameters: <String, dynamic>{
-        'hours': 24,
-        'hour': 24,
-      },
-    );
-
-    final List<MySpeedTest> tests = _parseTests(response.data);
-    final DateTime cutoff = DateTime.now().subtract(const Duration(hours: 24));
-    return tests.where((MySpeedTest t) {
-      if (t.createdAt == null) return true;
-      return t.createdAt!.isAfter(cutoff);
-    }).toList();
-  }
-
-  /// Fetches historical speedtests via `GET /api/speedtests`.
-  ///
-  /// Optional [hours] param supported if backend implements it.
-  Future<List<MySpeedTest>> getHistory({int? hours, int? hour}) async {
-    final Map<String, dynamic> params = <String, dynamic>{};
-    if (hours != null) params['hours'] = hours;
-    if (hour != null) params['hour'] = hour;
-
-    final Response<dynamic> response = await _dio.get<dynamic>(
-      'api/speedtests',
-      queryParameters: params.isNotEmpty ? params : null,
-    );
-
-    return _parseTests(response.data);
-  }
+  /// The last 24 hours, whole: the server's default window with the row
+  /// cap lifted.
+  Future<List<MySpeedTest>> get24HourSpeedtests() =>
+      getSpeedtests(hours: 24, limit: pageLimit);
 
   /// Fetches a single speedtest by its ID via `GET /api/speedtests/:id`.
   Future<MySpeedTest?> getSpeedtestById(String id) async {
@@ -107,20 +90,10 @@ class MySpeedApi {
     return MySpeedStorage.fromJson(response.data);
   }
 
-  /// Triggers a manual speedtest run on the server.
-  ///
-  /// Calls `POST /api/speedtests/run` with fallback to `POST /api/speedtests`.
-  Future<bool> runSpeedtest() async {
-    try {
-      final Response<dynamic> response = await _dio.post<dynamic>('api/speedtests/run');
-      return (response.statusCode ?? 0) >= 200 && (response.statusCode ?? 0) < 300;
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
-        final Response<dynamic> alt = await _dio.post<dynamic>('api/speedtests');
-        return (alt.statusCode ?? 0) >= 200 && (alt.statusCode ?? 0) < 300;
-      }
-      rethrow;
-    }
+  /// Starts a speedtest via `POST /api/speedtests/run`. The server answers
+  /// before the test ends; `getSpeedtestStatus` says when it has.
+  Future<void> runSpeedtest() async {
+    await _dio.post<dynamic>('api/speedtests/run');
   }
 
   List<MySpeedTest> _parseTests(dynamic data) {

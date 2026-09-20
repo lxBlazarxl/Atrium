@@ -36,7 +36,9 @@ final myspeedStatusProvider =
 
 /// Notifier that caches historical speedtests in memory across tab switches.
 ///
-/// Fetches all speedtests from `GET /api/speedtests` once and retains them.
+/// Reads the whole history from `GET /api/speedtests` once (the server's
+/// default is one day and ten rows, so the window and the cap are spelled
+/// out) and retains it.
 /// Calling [fetchDiff] queries only the latest batch and prepends newly created
 /// tests without reloading the entire dataset, avoiding UI lag.
 class MySpeedHistoryNotifier extends AsyncNotifier<List<MySpeedTest>> {
@@ -47,7 +49,10 @@ class MySpeedHistoryNotifier extends AsyncNotifier<List<MySpeedTest>> {
   @override
   Future<List<MySpeedTest>> build() async {
     final MySpeedApi api = await ref.watch(myspeedApiProvider(instance).future);
-    return api.getSpeedtests(limit: 1000);
+    return api.getSpeedtests(
+      hours: MySpeedApi.historyHours,
+      limit: MySpeedApi.pageLimit,
+    );
   }
 
   /// Incremental update: fetches only the most recent tests (limit: 10)
@@ -90,7 +95,10 @@ class MySpeedHistoryNotifier extends AsyncNotifier<List<MySpeedTest>> {
     state = const AsyncLoading<List<MySpeedTest>>();
     state = await AsyncValue.guard(() async {
       final MySpeedApi api = await ref.read(myspeedApiProvider(instance).future);
-      return api.getSpeedtests(limit: 1000);
+      return api.getSpeedtests(
+      hours: MySpeedApi.historyHours,
+      limit: MySpeedApi.pageLimit,
+    );
     });
   }
 }
