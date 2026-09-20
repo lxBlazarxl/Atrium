@@ -55,11 +55,13 @@ body:
         - Prowlarr
         - Bazarr
         - Seerr (Overseerr or Jellyseerr)
+        - Ombi
         - Tautulli
         - Tracearr
         - Jellyfin
         - Emby
         - Plex
+        - Navidrome
         - qBittorrent
         - Deluge
         - Transmission
@@ -68,8 +70,10 @@ body:
         - NZBGet
         - Glances
         - Speedtest Tracker
+        - MySpeed
         - Beszel
         - dashdot
+        - Gluetun
         - Unraid
         - Something else
     validations:
