@@ -143,6 +143,10 @@ class _TransmissionTorrentsTabState
               onChanged: (String v) => ref
                   .read(transmissionSearchProvider(instance).notifier)
                   .state = v,
+              // A focused field gets the keyboard back whenever a menu or
+              // sheet closes above it, so a tap anywhere else lets it go.
+              onTapOutside: (PointerDownEvent _) =>
+                  FocusScope.of(context).unfocus(),
             ),
             const SizedBox(height: Insets.sm),
             _FilterBar(instance: instance, session: session),

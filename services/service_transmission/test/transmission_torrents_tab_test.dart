@@ -82,6 +82,27 @@ void main() {
     expect(find.text('All (1)'), findsOneWidget);
   });
 
+  testWidgets('tapping outside the search box drops its focus',
+      (WidgetTester tester) async {
+    // Otherwise the keyboard comes back every time a menu closes, since focus
+    // returns to the field.
+    await open(tester);
+    await tester.tap(find.widgetWithText(TextField, 'Search torrents'));
+    await settle(tester);
+    expect(
+      tester.widget<EditableText>(find.byType(EditableText)).focusNode.hasFocus,
+      isTrue,
+    );
+
+    await tester.tap(find.text('Queue position'));
+    await settle(tester);
+
+    expect(
+      tester.widget<EditableText>(find.byType(EditableText)).focusNode.hasFocus,
+      isFalse,
+    );
+  });
+
   testWidgets('rows read like the web UI', (WidgetTester tester) async {
     fake.on('torrent-get', <String, Object?>{
       'torrents': <Map<String, dynamic>>[
