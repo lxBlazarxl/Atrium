@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import 'models/myspeed_config.dart';
 import 'models/myspeed_status.dart';
+import 'models/myspeed_storage.dart';
 import 'models/myspeed_test.dart';
 
 /// API client for interacting with MySpeed (`gnmyt/myspeed`).
@@ -72,10 +73,38 @@ class MySpeedApi {
     return _parseTests(response.data);
   }
 
+  /// Fetches a single speedtest by its ID via `GET /api/speedtests/:id`.
+  Future<MySpeedTest?> getSpeedtestById(String id) async {
+    try {
+      final Response<dynamic> response = await _dio.get<dynamic>('api/speedtests/$id');
+      final dynamic data = response.data;
+      if (data == null) return null;
+      if (data is Map) {
+        final Map<String, dynamic> map = data.cast<String, dynamic>();
+        if (map.containsKey('data') && map['data'] is Map) {
+          return MySpeedTest.fromJson((map['data'] as Map).cast<String, dynamic>());
+        }
+        return MySpeedTest.fromJson(map);
+      }
+      return null;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return null;
+      }
+      rethrow;
+    }
+  }
+
   /// Fetches MySpeed server configuration via `GET /api/config`.
   Future<MySpeedConfig> getConfig() async {
     final Response<dynamic> response = await _dio.get<dynamic>('api/config');
     return MySpeedConfig.fromResponse(response.data);
+  }
+
+  /// Fetches storage usage information via `GET /api/storage`.
+  Future<MySpeedStorage> getStorage() async {
+    final Response<dynamic> response = await _dio.get<dynamic>('api/storage');
+    return MySpeedStorage.fromJson(response.data);
   }
 
   /// Triggers a manual speedtest run on the server.

@@ -60,6 +60,30 @@ void main() {
       expect(test.formattedPing, '14 ms');
       expect(test.server, 'Cloudflare');
     });
+
+    test('parses MySpeed API schema with created timestamp and serverName', () {
+      final test = MySpeedTest.fromJson(<String, dynamic>{
+        'id': 42,
+        'download': 512.8,
+        'upload': 105.4,
+        'ping': 8.2,
+        'jitter': 1.5,
+        'time': 18,
+        'created': '2026-09-20T12:00:00.000Z',
+        'serverName': 'London Datacenter',
+      });
+
+      expect(test.id, '42');
+      expect(test.download, 512.8);
+      expect(test.upload, 105.4);
+      expect(test.ping, 8.2);
+      expect(test.jitter, 1.5);
+      expect(test.duration, 18);
+      expect(test.server, 'London Datacenter');
+      expect(test.createdAt, isNotNull);
+      expect(test.createdAt!.isUtc, isFalse);
+      expect(test.formattedDate.isNotEmpty, isTrue);
+    });
   });
 
   group('MySpeedConfig.fromResponse', () {
@@ -135,6 +159,29 @@ void main() {
       expect(history.first.download, 100.0);
     });
 
+    test('get24HourSpeedtests calls api/speedtests with hours=24 and hour=24 params', () async {
+      final dio = Dio();
+      dio.httpClientAdapter = _FakeAdapter(
+        handler: (options) {
+          expect(options.queryParameters['hours'], 24);
+          expect(options.queryParameters['hour'], 24);
+          return ResponseBody.fromString(
+            '[{"id": 2, "download": 250.0, "upload": 50.0, "ping": 8.0}]',
+            200,
+            headers: <String, List<String>>{
+              Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+            },
+          );
+        },
+      );
+
+      final api = MySpeedApi(dio);
+      final results = await api.get24HourSpeedtests();
+
+      expect(results.length, 1);
+      expect(results.first.download, 250.0);
+    });
+
     test('getConfig calls api/config', () async {
       final dio = Dio();
       dio.httpClientAdapter = _FakeAdapter(
@@ -168,6 +215,63 @@ void main() {
       final api = MySpeedApi(dio);
       final result = await api.runSpeedtest();
       expect(result, isTrue);
+    });
+
+    test('getSpeedtestById returns test when found', () async {
+      final dio = Dio();
+      dio.httpClientAdapter = _FakeAdapter(
+        handler: (options) {
+          expect(options.path, 'api/speedtests/42');
+          return ResponseBody.fromString(
+            '{"id": 42, "download": 250.5, "upload": 50.0, "ping": 8.0}',
+            200,
+            headers: <String, List<String>>{
+              Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+            },
+          );
+        },
+      );
+
+      final api = MySpeedApi(dio);
+      final test = await api.getSpeedtestById('42');
+      expect(test, isNotNull);
+      expect(test!.id, '42');
+      expect(test.download, 250.5);
+    });
+
+    test('getSpeedtestById returns null on 404', () async {
+      final dio = Dio();
+      dio.httpClientAdapter = _FakeAdapter(
+        handler: (options) {
+          return ResponseBody.fromString('{"error": "Not Found"}', 404);
+        },
+      );
+
+      final api = MySpeedApi(dio);
+      final test = await api.getSpeedtestById('999');
+      expect(test, isNull);
+    });
+
+    test('getStorage calls api/storage and parses response', () async {
+      final dio = Dio();
+      dio.httpClientAdapter = _FakeAdapter(
+        handler: (options) {
+          expect(options.path, 'api/storage');
+          return ResponseBody.fromString(
+            '{"size": 10485760, "testCount": 150}',
+            200,
+            headers: <String, List<String>>{
+              Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+            },
+          );
+        },
+      );
+
+      final api = MySpeedApi(dio);
+      final storage = await api.getStorage();
+      expect(storage.size, 10485760);
+      expect(storage.testCount, 150);
+      expect(storage.formattedSize, '10.0 MB');
     });
   });
 }

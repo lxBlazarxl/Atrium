@@ -1,5 +1,6 @@
 export 'src/models/myspeed_config.dart';
 export 'src/models/myspeed_status.dart';
+export 'src/models/myspeed_storage.dart';
 export 'src/models/myspeed_test.dart';
 export 'src/myspeed_api.dart';
 export 'src/myspeed_home.dart';

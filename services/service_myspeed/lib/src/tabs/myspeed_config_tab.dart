@@ -5,11 +5,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/myspeed_config.dart';
+import '../models/myspeed_storage.dart';
 import '../myspeed_providers.dart';
 
 /// Tab 2: Configuration information.
 ///
-/// Fetches `GET /api/config` and displays settings, cron schedule, and provider info.
+/// Fetches `GET /api/config` and `GET /api/storage` to display settings,
+/// cron schedule, test provider info, and storage / database statistics.
 class MySpeedConfigTab extends ConsumerStatefulWidget {
   const MySpeedConfigTab({required this.instance, super.key});
 
@@ -26,10 +28,15 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
   Widget build(BuildContext context) {
     final AsyncValue<MySpeedConfig> configAsync =
         ref.watch(myspeedConfigProvider(widget.instance));
+    final AsyncValue<MySpeedStorage> storageAsync =
+        ref.watch(myspeedStorageProvider(widget.instance));
 
     return AsyncValueView<MySpeedConfig>(
       value: configAsync,
-      onRetry: () => ref.invalidate(myspeedConfigProvider(widget.instance)),
+      onRetry: () {
+        ref.invalidate(myspeedConfigProvider(widget.instance));
+        ref.invalidate(myspeedStorageProvider(widget.instance));
+      },
       data: (MySpeedConfig config) {
         final Map<String, dynamic> filteredEntries = <String, dynamic>{
           for (final MapEntry<String, dynamic> entry in config.entries.entries)
@@ -42,13 +49,19 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
         return EasyRefresh(
           onRefresh: () async {
             ref.invalidate(myspeedConfigProvider(widget.instance));
-            await ref.read(myspeedConfigProvider(widget.instance).future);
+            ref.invalidate(myspeedStorageProvider(widget.instance));
+            await Future.wait(<Future<dynamic>>[
+              ref.read(myspeedConfigProvider(widget.instance).future),
+              ref.read(myspeedStorageProvider(widget.instance).future),
+            ]);
           },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: Insets.page,
             children: <Widget>[
               _buildOverviewCard(context, config),
+              const SizedBox(height: Insets.md),
+              _buildStorageCard(context, storageAsync, config),
               const SizedBox(height: Insets.md),
               _buildSearchBar(context),
               const SizedBox(height: Insets.sm),
@@ -63,15 +76,14 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
   Widget _buildOverviewCard(BuildContext context, MySpeedConfig config) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colors = theme.colorScheme;
-    final Color accent = ServiceVisuals.accent(widget.instance.kind);
 
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.5)),
+        side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.6)),
       ),
-      color: colors.surfaceContainerLow,
+      color: colors.surfaceContainer,
       child: Padding(
         padding: const EdgeInsets.all(Insets.lg),
         child: Column(
@@ -90,7 +102,7 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
                 icon: Icons.schedule_rounded,
                 label: 'Cron Schedule',
                 value: config.cron!,
-                accent: accent,
+                color: colors.primary,
               ),
               const SizedBox(height: Insets.sm),
             ],
@@ -100,7 +112,7 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
                 icon: Icons.hub_rounded,
                 label: 'Test Provider',
                 value: config.provider!,
-                accent: accent,
+                color: colors.tertiary,
               ),
               const SizedBox(height: Insets.sm),
             ],
@@ -110,7 +122,7 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
                 icon: Icons.dns_rounded,
                 label: 'Server / Node',
                 value: config.server!,
-                accent: accent,
+                color: colors.secondary,
               ),
               const SizedBox(height: Insets.sm),
             ],
@@ -119,7 +131,111 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
               icon: Icons.settings_ethernet_rounded,
               label: 'Active Properties',
               value: '${config.entries.length} keys loaded',
-              accent: accent,
+              color: colors.primary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStorageCard(
+    BuildContext context,
+    AsyncValue<MySpeedStorage> storageAsync,
+    MySpeedConfig config,
+  ) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colors = theme.colorScheme;
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.6)),
+      ),
+      color: colors.surfaceContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(Insets.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: <Widget>[
+                Text(
+                  'Storage & Retention',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                storageAsync.maybeWhen(
+                  data: (MySpeedStorage storage) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: colors.primaryContainer.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: colors.primary.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      storage.formattedSize,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colors.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  orElse: () => const SizedBox.shrink(),
+                ),
+              ],
+            ),
+            const SizedBox(height: Insets.md),
+            storageAsync.when(
+              loading: () => const Padding(
+                padding: EdgeInsets.symmetric(vertical: Insets.sm),
+                child: Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              ),
+              error: (error, _) => Text(
+                'Could not load storage info',
+                style: theme.textTheme.bodySmall?.copyWith(color: colors.outline),
+              ),
+              data: (MySpeedStorage storage) {
+                final String? retention = config.entries['retentionDays']?.toString();
+                return Column(
+                  children: <Widget>[
+                    _overviewRow(
+                      context,
+                      icon: Icons.storage_rounded,
+                      label: 'Database Size',
+                      value: storage.formattedSize,
+                      color: colors.primary,
+                    ),
+                    const SizedBox(height: Insets.sm),
+                    _overviewRow(
+                      context,
+                      icon: Icons.analytics_outlined,
+                      label: 'Tests Stored',
+                      value: '${storage.testCount ?? 0}',
+                      color: colors.secondary,
+                    ),
+                    if (retention != null && retention.isNotEmpty) ...<Widget>[
+                      const SizedBox(height: Insets.sm),
+                      _overviewRow(
+                        context,
+                        icon: Icons.auto_delete_outlined,
+                        label: 'Data Retention',
+                        value: '$retention days',
+                        color: colors.tertiary,
+                      ),
+                    ],
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -132,14 +248,14 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
     required IconData icon,
     required String label,
     required String value,
-    required Color accent,
+    required Color color,
   }) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colors = theme.colorScheme;
 
     return Row(
       children: <Widget>[
-        Icon(icon, size: 18, color: accent),
+        Icon(icon, size: 18, color: color),
         const SizedBox(width: Insets.sm),
         Text(
           label,
@@ -159,6 +275,8 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
   }
 
   Widget _buildSearchBar(BuildContext context) {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+
     return TextField(
       decoration: InputDecoration(
         hintText: 'Filter configuration keys...',
@@ -170,10 +288,19 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
               )
             : null,
         filled: true,
-        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-        border: OutlineInputBorder(
+        fillColor: colors.surfaceContainer,
+        enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide(
+            color: colors.outlineVariant.withValues(alpha: 0.6),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: colors.primary,
+            width: 1.5,
+          ),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       ),
@@ -201,16 +328,16 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.4)),
+        side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.6)),
       ),
-      color: colors.surfaceContainerLowest,
+      color: colors.surfaceContainer,
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: entries.length,
         separatorBuilder: (_, __) => Divider(
           height: 1,
-          color: colors.outlineVariant.withValues(alpha: 0.2),
+          color: colors.outlineVariant.withValues(alpha: 0.3),
         ),
         itemBuilder: (BuildContext context, int index) {
           final String key = entries.keys.elementAt(index);

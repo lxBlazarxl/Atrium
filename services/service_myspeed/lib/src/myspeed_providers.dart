@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/legacy.dart';
 
 import 'models/myspeed_config.dart';
 import 'models/myspeed_status.dart';
+import 'models/myspeed_storage.dart';
 import 'models/myspeed_test.dart';
 import 'myspeed_api.dart';
 
@@ -142,4 +143,14 @@ final myspeedConfigProvider =
 ) async {
   final MySpeedApi api = await ref.watch(myspeedApiProvider(instance).future);
   return api.getConfig();
+});
+
+/// Fetches database and storage information from `GET /api/storage`.
+final myspeedStorageProvider =
+    FutureProvider.autoDispose.family<MySpeedStorage, Instance>((
+  Ref ref,
+  Instance instance,
+) async {
+  final MySpeedApi api = await ref.watch(myspeedApiProvider(instance).future);
+  return api.getStorage();
 });
