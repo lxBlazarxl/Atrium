@@ -126,6 +126,13 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
     }
     if (instance.kind == ServiceKind.myspeed) {
       return MySpeedHome(
+        instance: instance,
+        drawer: ServicesDrawer(
+          instances: ref.watch(activeInstancesProvider),
+          profile: ref.watch(activeProfileProvider),
+        ),
+      );
+    }
     if (instance.kind == ServiceKind.transmission) {
       return TransmissionHome(
         instance: instance,
