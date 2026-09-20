@@ -90,7 +90,7 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Text(
-              'Configuration Overview',
+              'Configuration overview',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -100,7 +100,7 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
               _overviewRow(
                 context,
                 icon: Icons.schedule_rounded,
-                label: 'Cron Schedule',
+                label: 'Cron schedule',
                 value: config.cron!,
                 color: colors.primary,
               ),
@@ -110,7 +110,7 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
               _overviewRow(
                 context,
                 icon: Icons.hub_rounded,
-                label: 'Test Provider',
+                label: 'Test provider',
                 value: config.provider!,
                 color: colors.tertiary,
               ),
@@ -129,7 +129,7 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
             _overviewRow(
               context,
               icon: Icons.settings_ethernet_rounded,
-              label: 'Active Properties',
+              label: 'Active properties',
               value: '${config.entries.length} keys loaded',
               color: colors.primary,
             ),
@@ -160,7 +160,7 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Text(
-              'Storage & Retention',
+              'Storage and retention',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -188,7 +188,7 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
                     _overviewRow(
                       context,
                       icon: Icons.storage_rounded,
-                      label: 'Database Size',
+                      label: 'Database size',
                       value: storage.formattedSize,
                       color: colors.primary,
                     ),
@@ -196,7 +196,7 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
                     _overviewRow(
                       context,
                       icon: Icons.analytics_outlined,
-                      label: 'Tests Stored',
+                      label: 'Tests stored',
                       value: '${storage.testCount ?? 0}',
                       color: colors.secondary,
                     ),
@@ -205,7 +205,7 @@ class _MySpeedConfigTabState extends ConsumerState<MySpeedConfigTab> {
                       _overviewRow(
                         context,
                         icon: Icons.auto_delete_outlined,
-                        label: 'Data Retention',
+                        label: 'Data retention',
                         value: '$retention days',
                         color: colors.tertiary,
                       ),

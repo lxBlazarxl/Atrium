@@ -30,6 +30,7 @@ class MySpeedStatusTab extends ConsumerStatefulWidget {
 class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
   Timer? _pollingTimer;
   bool _isLocallyRunning = false;
+  int _ticks = 0;
 
   @override
   void initState() {
@@ -49,7 +50,13 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
     if (activeTab != 0 && !wasRunning) return;
 
     ref.invalidate(myspeedStatusProvider(widget.instance));
-    ref.invalidate(myspeed24HourTestsProvider(widget.instance));
+    // The day's list is a few hundred rows. It changes when a run ends, so
+    // it is re-read then, and once a minute for a scheduled run the status
+    // poll happened to miss.
+    _ticks++;
+    if (_ticks % 12 == 0) {
+      ref.invalidate(myspeed24HourTestsProvider(widget.instance));
+    }
 
     MySpeedStatus? newStatus;
     try {
@@ -68,8 +75,11 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
       }
     }
 
-    // If speedtest just transitioned from running to idle, update history diff
+    // The widget may have gone while the status was in flight, and its ref
+    // with it.
+    if (!mounted) return;
     if (wasRunning && !isNowRunning) {
+      ref.invalidate(myspeed24HourTestsProvider(widget.instance));
       await ref.read(myspeedHistoryProvider(widget.instance).notifier).fetchDiff();
     }
   }
@@ -84,7 +94,7 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext ctx) => AlertDialog(
-        title: const Text('Run Speedtest'),
+        title: const Text('Run speedtest'),
         content: Text('Start a new speedtest on ${widget.instance.name}?'),
         actions: <Widget>[
           TextButton(
@@ -218,13 +228,13 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       Text(
-                        'Execution Status',
+                        'Execution status',
                         style: theme.textTheme.labelMedium?.copyWith(
                           color: colors.onSurfaceVariant,
                         ),
                       ),
                       Text(
-                        isRunning ? 'Speedtest Running' : 'Idle',
+                        isRunning ? 'Speedtest running' : 'Idle',
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
@@ -297,7 +307,7 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
                         height: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Run Test'),
+                    : const Text('Run test'),
               ),
             ),
           ],
@@ -332,7 +342,7 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
                 Row(
                   children: <Widget>[
                     Text(
-                      'Most Recent Result',
+                      'Most recent result',
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -485,7 +495,7 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
               Text(
-                'Recent Results',
+                'Recent results',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -501,7 +511,7 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    '${tests.length} tests',
+                    tests.length == 1 ? '1 test' : '${tests.length} tests',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: colors.onPrimaryContainer,
                       fontWeight: FontWeight.w600,

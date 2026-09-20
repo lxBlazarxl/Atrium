@@ -113,19 +113,19 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Execution Status'), findsOneWidget);
+    expect(find.text('Execution status'), findsOneWidget);
     expect(find.text('Idle'), findsOneWidget);
-    expect(find.text('Run Test'), findsOneWidget);
+    expect(find.text('Run test'), findsOneWidget);
     expect(find.byIcon(Icons.bolt_rounded), findsNothing);
     expect(find.byIcon(Icons.bolt), findsNothing);
-    expect(find.text('Most Recent Result'), findsOneWidget);
+    expect(find.text('Most recent result'), findsOneWidget);
     expect(find.text('#1'), findsAtLeastNWidgets(1));
 
     await tester.drag(find.byType(ListView), const Offset(0, -300));
     await tester.pumpAndSettle();
 
-    expect(find.text('Recent Results'), findsOneWidget);
-    expect(find.text('1 tests'), findsOneWidget);
+    expect(find.text('Recent results'), findsOneWidget);
+    expect(find.text('1 test'), findsOneWidget);
     expect(find.text('320.5'), findsAtLeastNWidgets(1)); // from dedicated metric box
   });
 
@@ -142,8 +142,8 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Historical Summary'), findsOneWidget);
-    expect(find.text('1 tests'), findsOneWidget);
+    expect(find.text('Historical summary'), findsOneWidget);
+    expect(find.text('1 test'), findsOneWidget);
     expect(find.byType(TextField), findsOneWidget);
     expect(find.text('#1'), findsOneWidget);
     expect(find.text('320.5'), findsNWidgets(2)); // summary + card
@@ -162,8 +162,8 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Configuration Overview'), findsOneWidget);
-    expect(find.text('Storage & Retention'), findsOneWidget);
+    expect(find.text('Configuration overview'), findsOneWidget);
+    expect(find.text('Storage and retention'), findsOneWidget);
     expect(find.text('1.0 MB'), findsOneWidget); // detail row
     expect(find.text('42'), findsOneWidget);
     expect(find.text('0 * * * *'), findsNWidgets(2));

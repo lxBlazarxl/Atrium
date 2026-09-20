@@ -249,7 +249,7 @@ class _MySpeedHistoryTabState extends ConsumerState<MySpeedHistoryTab> {
                   padding: EdgeInsets.symmetric(vertical: Insets.xl),
                   child: EmptyView(
                     icon: Icons.history_rounded,
-                    title: 'No Speedtests',
+                    title: 'No speedtests',
                     message: 'No speedtests recorded on this instance.',
                   ),
                 );
@@ -299,7 +299,7 @@ class _MySpeedHistoryTabState extends ConsumerState<MySpeedHistoryTab> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
                 Text(
-                  'Historical Summary',
+                  'Historical summary',
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
@@ -314,7 +314,7 @@ class _MySpeedHistoryTabState extends ConsumerState<MySpeedHistoryTab> {
                     ),
                   ),
                   child: Text(
-                    '${tests.length} tests',
+                    tests.length == 1 ? '1 test' : '${tests.length} tests',
                     style: theme.textTheme.labelSmall?.copyWith(
                       color: colors.primary,
                       fontWeight: FontWeight.bold,

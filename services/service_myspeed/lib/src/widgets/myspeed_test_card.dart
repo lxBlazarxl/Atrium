@@ -22,7 +22,7 @@ class MySpeedTestCard extends StatelessWidget {
 
     final String timeStr = test.formattedDate.isNotEmpty
         ? test.formattedDate
-        : 'Recent Test';
+        : 'Recent test';
 
     return Card(
       elevation: 0,

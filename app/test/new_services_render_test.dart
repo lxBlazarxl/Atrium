@@ -414,7 +414,7 @@ void main() {
       pumps: 2,
     );
 
-    expect(find.text('Execution Status'), findsOneWidget);
+    expect(find.text('Execution status'), findsOneWidget);
     expect(find.text('Idle'), findsOneWidget);
     expect(find.byType(NavigationBar), findsOneWidget);
   });
