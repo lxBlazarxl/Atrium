@@ -485,7 +485,7 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
               Text(
-                '24-Hour Results',
+                'Recent Results',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),

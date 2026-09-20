@@ -124,7 +124,7 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, -300));
     await tester.pumpAndSettle();
 
-    expect(find.text('24-Hour Results'), findsOneWidget);
+    expect(find.text('Recent Results'), findsOneWidget);
     expect(find.text('1 tests'), findsOneWidget);
     expect(find.text('320.5'), findsAtLeastNWidgets(1)); // from dedicated metric box
   });
