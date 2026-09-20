@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:core_models/core_models.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
@@ -7,23 +9,50 @@ import '../models/myspeed_test.dart';
 import '../myspeed_providers.dart';
 import '../widgets/myspeed_test_card.dart';
 
-class MySpeedHistoryTab extends ConsumerWidget {
+class MySpeedHistoryTab extends ConsumerStatefulWidget {
   const MySpeedHistoryTab({required this.instance, super.key});
 
   final Instance instance;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MySpeedHistoryTab> createState() => _MySpeedHistoryTabState();
+}
+
+class _MySpeedHistoryTabState extends ConsumerState<MySpeedHistoryTab> {
+  Timer? _pollingTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 20), (_) => _poll());
+  }
+
+  Future<void> _poll() async {
+    if (!mounted) return;
+    final int activeTab = ref.read(myspeedActiveTabBarIndexProvider(widget.instance));
+    if (activeTab != 1) return;
+
+    await ref.read(myspeedHistoryProvider(widget.instance).notifier).fetchDiff();
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final AsyncValue<List<MySpeedTest>> historyAsync =
-        ref.watch(myspeedHistoryProvider(instance));
+        ref.watch(myspeedHistoryProvider(widget.instance));
 
     return AsyncValueView<List<MySpeedTest>>(
       value: historyAsync,
-      onRetry: () => ref.read(myspeedHistoryProvider(instance).notifier).reload(),
+      onRetry: () => ref.read(myspeedHistoryProvider(widget.instance).notifier).reload(),
       data: (List<MySpeedTest> tests) {
         return EasyRefresh(
           onRefresh: () async {
-            await ref.read(myspeedHistoryProvider(instance).notifier).reload();
+            await ref.read(myspeedHistoryProvider(widget.instance).notifier).reload();
           },
           child: ListView.builder(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -58,7 +87,7 @@ class MySpeedHistoryTab extends ConsumerWidget {
   Widget _buildSummaryCard(BuildContext context, List<MySpeedTest> tests) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colors = theme.colorScheme;
-    final Color accent = ServiceVisuals.accent(instance.kind);
+    final Color accent = ServiceVisuals.accent(widget.instance.kind);
 
     double sumDown = 0;
     double sumUp = 0;

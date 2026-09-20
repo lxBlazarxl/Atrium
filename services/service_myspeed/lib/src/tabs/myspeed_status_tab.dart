@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:core_models/core_models.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
@@ -8,17 +10,67 @@ import '../models/myspeed_test.dart';
 import '../myspeed_providers.dart';
 import '../widgets/myspeed_test_card.dart';
 
-class MySpeedStatusTab extends ConsumerWidget {
+class MySpeedStatusTab extends ConsumerStatefulWidget {
   const MySpeedStatusTab({required this.instance, super.key});
 
   final Instance instance;
 
-  Future<void> _runSpeedtest(BuildContext context, WidgetRef ref) async {
+  @override
+  ConsumerState<MySpeedStatusTab> createState() => _MySpeedStatusTabState();
+}
+
+class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
+  Timer? _pollingTimer;
+  bool _isLocallyRunning = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _startPolling();
+  }
+
+  void _startPolling() {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (_) => _poll());
+  }
+
+  Future<void> _poll() async {
+    if (!mounted) return;
+    final int activeTab = ref.read(myspeedActiveTabBarIndexProvider(widget.instance));
+    final bool wasRunning = _isLocallyRunning ||
+        (ref.read(myspeedStatusProvider(widget.instance)).value?.isRunning ?? false);
+    if (activeTab != 0 && !wasRunning) return;
+
+    ref.invalidate(myspeedStatusProvider(widget.instance));
+    ref.invalidate(myspeed24HourTestsProvider(widget.instance));
+
+    MySpeedStatus? newStatus;
+    try {
+      newStatus = await ref.read(myspeedStatusProvider(widget.instance).future);
+    } catch (_) {
+      newStatus = null;
+    }
+
+    if (!mounted) return;
+
+    if (_isLocallyRunning && (newStatus == null || !newStatus.isRunning)) {
+      setState(() => _isLocallyRunning = false);
+      ref.invalidate(myspeed24HourTestsProvider(widget.instance));
+      ref.read(myspeedHistoryProvider(widget.instance).notifier).fetchDiff();
+    }
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _runSpeedtest() async {
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext ctx) => AlertDialog(
         title: const Text('Run Speedtest'),
-        content: Text('Start a new speedtest on ${instance.name}?'),
+        content: Text('Start a new speedtest on ${widget.instance.name}?'),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -32,60 +84,69 @@ class MySpeedStatusTab extends ConsumerWidget {
       ),
     );
 
-    if (confirmed != true || !context.mounted) return;
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isLocallyRunning = true);
 
     try {
-      final api = await ref.read(myspeedApiProvider(instance).future);
+      final api = await ref.read(myspeedApiProvider(widget.instance).future);
       await api.runSpeedtest();
-      ref.invalidate(myspeedStatusProvider(instance));
-      ref.invalidate(myspeed24HourTestsProvider(instance));
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Speedtest triggered successfully')),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Speedtest triggered successfully')),
+      );
+      await _poll();
     } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to trigger speedtest: $e')),
-        );
-      }
+      if (!mounted) return;
+      setState(() => _isLocallyRunning = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to trigger speedtest: $e')),
+      );
+      ref.invalidate(myspeedStatusProvider(widget.instance));
     }
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colors = theme.colorScheme;
     final AsyncValue<MySpeedStatus> statusAsync =
-        ref.watch(myspeedStatusProvider(instance));
-    final MySpeedTest? latestTest = ref.watch(myspeedLatestTestProvider(instance));
+        ref.watch(myspeedStatusProvider(widget.instance));
+    final MySpeedTest? latestTest = ref.watch(myspeedLatestTestProvider(widget.instance));
     final AsyncValue<List<MySpeedTest>> speedtests24hAsync =
-        ref.watch(myspeed24HourTestsProvider(instance));
+        ref.watch(myspeed24HourTestsProvider(widget.instance));
 
     return AsyncValueView<MySpeedStatus>(
       value: statusAsync,
       onRetry: () {
-        ref.invalidate(myspeedStatusProvider(instance));
-        ref.invalidate(myspeed24HourTestsProvider(instance));
+        ref.invalidate(myspeedStatusProvider(widget.instance));
+        ref.invalidate(myspeed24HourTestsProvider(widget.instance));
       },
       data: (MySpeedStatus status) {
+        final MySpeedStatus effectiveStatus = _isLocallyRunning
+            ? const MySpeedStatus(
+                isRunning: true,
+                message: 'Speedtest in progress...',
+              )
+            : status;
+
         return EasyRefresh(
           onRefresh: () async {
-            ref.invalidate(myspeedStatusProvider(instance));
-            ref.invalidate(myspeed24HourTestsProvider(instance));
+            ref.invalidate(myspeedStatusProvider(widget.instance));
+            ref.invalidate(myspeed24HourTestsProvider(widget.instance));
             await Future.wait(<Future<dynamic>>[
-              ref.read(myspeedStatusProvider(instance).future),
-              ref.read(myspeed24HourTestsProvider(instance).future),
+              ref.read(myspeedStatusProvider(widget.instance).future),
+              ref.read(myspeed24HourTestsProvider(widget.instance).future),
+              ref.read(myspeedHistoryProvider(widget.instance).notifier).fetchDiff(),
             ]);
           },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: Insets.page,
             children: <Widget>[
-              _buildStatusCard(context, status),
+              _buildStatusCard(context, effectiveStatus),
               const SizedBox(height: Insets.md),
-              _buildRunCard(context, ref, status),
+              _buildRunCard(context, effectiveStatus),
               const SizedBox(height: Insets.md),
               _buildLatestResultCard(context, latestTest),
               const SizedBox(height: Insets.lg),
@@ -102,7 +163,7 @@ class MySpeedStatusTab extends ConsumerWidget {
   Widget _buildStatusCard(BuildContext context, MySpeedStatus status) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colors = theme.colorScheme;
-    final Color accent = ServiceVisuals.accent(instance.kind);
+    final Color accent = ServiceVisuals.accent(widget.instance.kind);
     final bool isRunning = status.isRunning;
 
     return Card(
@@ -184,7 +245,7 @@ class MySpeedStatusTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildRunCard(BuildContext context, WidgetRef ref, MySpeedStatus status) {
+  Widget _buildRunCard(BuildContext context, MySpeedStatus status) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colors = theme.colorScheme;
     final bool isRunning = status.isRunning;
@@ -221,7 +282,7 @@ class MySpeedStatusTab extends ConsumerWidget {
               ),
             ),
             FilledButton(
-              onPressed: isRunning ? null : () => _runSpeedtest(context, ref),
+              onPressed: isRunning ? null : _runSpeedtest,
               child: const Text('Run Test'),
             ),
           ],
