@@ -141,7 +141,8 @@ Atrium is a **controller** app. Video playback was removed by design
   and health, system with per-core CPU load and an About card, Docker
   containers with a detail sheet and start/stop/pause/resume, and virtual
   machines with start, shut down, pause, resume, reboot, force stop and reset
-- **Gluetun** (beta, contributed by monuk7735 in PR #157, 2026-09-17): VPN
+- **Gluetun** (contributed by monuk7735 in PR #157, 2026-09-17; out of beta
+  since 2026-09-20): VPN
   status with public IP, location and the forwarded port, reconnect in one
   tap, stop the VPN or DNS behind a confirmation, refused changes reported
   rather than claimed, an optional API key (a control server can run a

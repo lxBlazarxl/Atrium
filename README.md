@@ -80,7 +80,7 @@ each one covers:
 | MySpeed                | status and manual runs, the day's results, history with averages, password auth |
 | Beszel                 | systems list, live metrics, per-system detail screen                  |
 | dashdot                | live CPU, memory, disk, and GPU usage with a system-info tab, dashboard widget |
-| Gluetun                | VPN status, forwarded port, reconnect, dashboard widget (beta)        |
+| Gluetun                | VPN status, forwarded port, reconnect, dashboard widget               |
 | Unraid                 | array and disk health, system with per-core load, Docker, VM control (beta) |
 
 ## Install
