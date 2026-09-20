@@ -5,6 +5,7 @@ import 'package:progress_indicator_m3e/progress_indicator_m3e.dart';
 import 'models/transmission_detail.dart';
 import 'transmission_api.dart';
 import 'transmission_format.dart';
+import 'transmission_visuals.dart';
 
 /// A folder or file in a torrent, built from Transmission's flat file list.
 ///
@@ -138,18 +139,34 @@ class _TransmissionFilesTreeState extends State<TransmissionFilesTree> {
     }
 
     walk(widget.root, 0);
-    return ListView(padding: Insets.page, children: rows);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(
+        Insets.md,
+        Insets.xs,
+        Insets.md,
+        Insets.xl,
+      ),
+      children: <Widget>[
+        TransmissionPanel(
+          padding: const EdgeInsets.symmetric(
+            horizontal: Insets.sm,
+            vertical: Insets.xs,
+          ),
+          child: Column(children: rows),
+        ),
+      ],
+    );
   }
 
   Widget _row(TransmissionFileNode node, int depth) {
     final ThemeData theme = Theme.of(context);
+    final ColorScheme cs = theme.colorScheme;
     final bool open = !_closed.contains(node.path);
     final bool? checked =
         node.allWanted ? true : (node.anyWanted ? null : false);
     return Padding(
       padding: EdgeInsets.only(left: depth * Insets.lg),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Checkbox(
             tristate: node.isFolder,
@@ -159,6 +176,18 @@ class _TransmissionFilesTreeState extends State<TransmissionFilesTree> {
                 : (bool? _) =>
                     widget.onWanted(node.indices, !(checked ?? false)),
           ),
+          TransmissionIconBlock(
+            icon: node.isFolder
+                ? (open ? Icons.folder_open_rounded : Icons.folder_rounded)
+                : Icons.insert_drive_file_outlined,
+            background: node.isFolder
+                ? cs.secondaryContainer
+                : cs.surfaceContainerHighest,
+            foreground:
+                node.isFolder ? cs.onSecondaryContainer : cs.onSurfaceVariant,
+            size: 36,
+          ),
+          const SizedBox(width: Insets.sm),
           Expanded(
             child: InkWell(
               onTap: node.isFolder
@@ -166,42 +195,35 @@ class _TransmissionFilesTreeState extends State<TransmissionFilesTree> {
                         if (!_closed.remove(node.path)) _closed.add(node.path);
                       })
                   : null,
+              borderRadius: BorderRadius.circular(8),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: Insets.xs),
+                padding: const EdgeInsets.symmetric(vertical: Insets.sm),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Icon(
-                          node.isFolder
-                              ? (open
-                                  ? Icons.folder_open_outlined
-                                  : Icons.folder_outlined)
-                              : Icons.insert_drive_file_outlined,
-                          size: 18,
-                        ),
-                        const SizedBox(width: Insets.xs),
-                        Expanded(
-                          child: Text(
-                            node.name,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      node.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
                     ),
-                    const SizedBox(height: Insets.xxs),
-                    LinearProgressIndicatorM3E(
-                      value: node.progress,
-                      shape: ProgressM3EShape.flat,
-                      size: LinearProgressM3ESize.s,
+                    const SizedBox(height: Insets.xs),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: LinearProgressIndicatorM3E(
+                        value: node.progress,
+                        shape: ProgressM3EShape.flat,
+                        size: LinearProgressM3ESize.s,
+                        trackColor: cs.surfaceContainerHighest,
+                      ),
                     ),
-                    const SizedBox(height: Insets.xxs),
+                    const SizedBox(height: Insets.xs),
                     Text(
                       '${trPct(node.progress)}% - ${trFmtBytes(node.length)}'
                       '${node.isFolder ? '' : ' - ${node.file!.priorityLabel} priority'}',
-                      style: theme.textTheme.bodySmall,
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: cs.onSurfaceVariant),
                     ),
                   ],
                 ),

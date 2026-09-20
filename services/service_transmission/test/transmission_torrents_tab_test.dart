@@ -94,7 +94,9 @@ void main() {
       isTrue,
     );
 
-    await tester.tap(find.text('Queue position'));
+    // Anywhere outside the field: a header figure's label will do. (Not
+    // "Torrents", which the bottom bar also says.)
+    await tester.tap(find.text('Down'));
     await settle(tester);
 
     expect(
@@ -163,7 +165,10 @@ void main() {
 
     await tester.tap(find.byTooltip('More'));
     await settle(tester);
-    await tester.tap(find.text('Compact rows'));
+    // The checked item's tile ignores pointers; the item itself takes the tap.
+    await tester.tap(
+      find.widgetWithText(CheckedPopupMenuItem<String>, 'Compact rows'),
+    );
     await settle(tester);
 
     expect(find.textContaining('remaining'), findsNothing);

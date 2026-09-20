@@ -25,3 +25,4 @@ export 'src/transmission_speed_dialog.dart';
 export 'src/transmission_torrent_actions.dart';
 export 'src/transmission_torrent_row.dart';
 export 'src/transmission_torrents_tab.dart';
+export 'src/transmission_visuals.dart';

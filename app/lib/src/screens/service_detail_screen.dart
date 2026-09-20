@@ -126,6 +126,8 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
     }
     if (instance.kind == ServiceKind.myspeed) {
       return MySpeedHome(
+    if (instance.kind == ServiceKind.transmission) {
+      return TransmissionHome(
         instance: instance,
         drawer: ServicesDrawer(
           instances: ref.watch(activeInstancesProvider),
@@ -337,7 +339,8 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
       ServiceKind.sabnzbd => SabnzbdHome(instance: instance),
       ServiceKind.nzbget => NzbgetHome(instance: instance),
       ServiceKind.deluge => DelugeHome(instance: instance),
-      ServiceKind.transmission => TransmissionHome(instance: instance),
+      // Owns its own scaffold, handled above.
+      ServiceKind.transmission => const SizedBox.shrink(),
       ServiceKind.rtorrent => RtorrentHome(instance: instance),
       ServiceKind.glances => GlancesHome(instance: instance),
       ServiceKind.beszel => BeszelHome(instance: instance),
