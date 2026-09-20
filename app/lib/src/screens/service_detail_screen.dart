@@ -124,6 +124,15 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
         ),
       );
     }
+    if (instance.kind == ServiceKind.myspeed) {
+      return MySpeedHome(
+        instance: instance,
+        drawer: ServicesDrawer(
+          instances: ref.watch(activeInstancesProvider),
+          profile: ref.watch(activeProfileProvider),
+        ),
+      );
+    }
     return PopScope<Object?>(
         canPop: false,
         onPopInvokedWithResult: (bool didPop, Object? result) {
@@ -337,7 +346,7 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
       ServiceKind.gluetun => GluetunHome(instance: instance),
       ServiceKind.navidrome => const SizedBox.shrink(),
       ServiceKind.ombi => OmbiHome(instance: instance),
-      ServiceKind.myspeed => MySpeedHome(instance: instance),
+      ServiceKind.myspeed => const SizedBox.shrink(),
     };
   }
 }

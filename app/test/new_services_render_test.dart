@@ -405,11 +405,17 @@ void main() {
     final Instance myspeed = _instance(ServiceKind.myspeed);
     await _pump(
       tester,
-      <Override>[],
+      <Override>[
+        myspeedStatusProvider(myspeed).overrideWith(
+          (ref) async => const MySpeedStatus(isRunning: false),
+        ),
+      ],
       MySpeedHome(instance: myspeed),
+      pumps: 2,
     );
 
-    expect(find.text('MySpeed'), findsOneWidget);
-    expect(find.text('MySpeed service integration ready.'), findsOneWidget);
+    expect(find.text('Execution Status'), findsOneWidget);
+    expect(find.text('Idle'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
   });
 }
