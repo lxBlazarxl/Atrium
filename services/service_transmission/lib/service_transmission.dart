@@ -20,6 +20,7 @@ export 'src/transmission_home.dart';
 export 'src/transmission_info_strings.dart';
 export 'src/transmission_providers.dart';
 export 'src/transmission_row_strings.dart';
+export 'src/transmission_settings_tab.dart';
 export 'src/transmission_speed_dialog.dart';
 export 'src/transmission_torrent_actions.dart';
 export 'src/transmission_torrent_row.dart';
