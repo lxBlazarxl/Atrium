@@ -122,10 +122,9 @@ void main() {
     expect(find.textContaining('Next announce in'), findsOneWidget);
     expect(find.textContaining('got 40 peers'), findsOneWidget);
     expect(find.textContaining('Last scrape:'), findsOneWidget);
-    expect(
-      find.text('Seeders 300, leechers 20, downloads 5000'),
-      findsOneWidget,
-    );
+    expect(find.text('300 seeders'), findsOneWidget);
+    expect(find.text('20 leechers'), findsOneWidget);
+    expect(find.text('5000 downloads'), findsOneWidget);
   });
 
   testWidgets('the app bar menu carries the actions',

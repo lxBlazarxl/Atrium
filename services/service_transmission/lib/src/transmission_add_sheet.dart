@@ -11,6 +11,7 @@ import 'models/transmission_session.dart';
 import 'transmission_api.dart';
 import 'transmission_format.dart';
 import 'transmission_providers.dart';
+import 'transmission_visuals.dart';
 
 /// Opens the add-torrent sheet for [instance].
 ///
@@ -31,6 +32,7 @@ Future<void> showTransmissionAddSheet(
     // same reason a pushed page does.
     useRootNavigator: true,
     isScrollControlled: true,
+    showDragHandle: true,
     builder: (BuildContext context) => _TransmissionAddSheet(
       instance: instance,
       initialLink: initialLink,
@@ -259,12 +261,12 @@ class _TransmissionAddSheetState
         : ref.watch(
             transmissionFreeSpaceProvider((widget.instance, _spacePath)),
           );
+    final ColorScheme cs = Theme.of(context).colorScheme;
     return Padding(
       padding: EdgeInsets.only(
-        left: Insets.md,
-        right: Insets.md,
-        top: Insets.md,
-        bottom: MediaQuery.viewInsetsOf(context).bottom + Insets.md,
+        left: Insets.lg,
+        right: Insets.lg,
+        bottom: MediaQuery.viewInsetsOf(context).bottom + Insets.lg,
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -273,7 +275,10 @@ class _TransmissionAddSheetState
           children: <Widget>[
             Text(
               'Add torrent',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: Theme.of(context)
+                  .textTheme
+                  .titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: Insets.md),
             SegmentedButton<_AddMode>(
@@ -301,14 +306,15 @@ class _TransmissionAddSheetState
                 autofocus: true,
                 minLines: 1,
                 maxLines: 3,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  labelText: 'magnet: link or .torrent URL',
+                decoration: transmissionFieldDecoration(
+                  context,
+                  label: 'magnet: link or .torrent URL',
+                  prefixIcon: const Icon(Icons.link),
                 ),
                 onChanged: (_) => setState(() {}),
               )
             else
-              OutlinedButton.icon(
+              FilledButton.tonalIcon(
                 onPressed: _busy ? null : _pickFile,
                 icon: const Icon(Icons.folder_open),
                 label: Text(_fileLabel),
@@ -316,25 +322,47 @@ class _TransmissionAddSheetState
             const SizedBox(height: Insets.md),
             TextField(
               controller: _downloadDir,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Download folder (optional)',
-                helperText: 'A path as the server sees it, not your phone',
+              decoration: transmissionFieldDecoration(
+                context,
+                label: 'Download folder (optional)',
+                helper: 'A path as the server sees it, not your phone',
+                prefixIcon: const Icon(Icons.folder_outlined),
               ),
               onChanged: _onFolderChanged,
             ),
             if (space != null)
               Padding(
-                padding: const EdgeInsets.only(top: Insets.xs, left: Insets.md),
-                child: Text(
-                  switch (space) {
-                    AsyncData<int?>(:final int? value) => value == null
-                        ? 'Free space unknown'
-                        : '${trFmtBytes(value)} free',
-                    AsyncError<int?>() => 'Free space unknown',
-                    _ => 'Checking free space',
+                padding: const EdgeInsets.only(top: Insets.sm),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: switch (space) {
+                    AsyncData<int?>(:final int? value) => TransmissionPill(
+                        icon: value == null
+                            ? Icons.help_outline
+                            : Icons.storage_rounded,
+                        label: value == null
+                            ? 'Free space unknown'
+                            : '${trFmtBytes(value)} free',
+                        foreground: value == null
+                            ? cs.onSurfaceVariant
+                            : cs.onTertiaryContainer,
+                        background: value == null
+                            ? cs.surfaceContainerHighest
+                            : cs.tertiaryContainer,
+                      ),
+                    AsyncError<int?>() => TransmissionPill(
+                        icon: Icons.help_outline,
+                        label: 'Free space unknown',
+                        foreground: cs.onSurfaceVariant,
+                        background: cs.surfaceContainerHighest,
+                      ),
+                    _ => TransmissionPill(
+                        icon: Icons.hourglass_empty_rounded,
+                        label: 'Checking free space',
+                        foreground: cs.onSurfaceVariant,
+                        background: cs.surfaceContainerHighest,
+                      ),
                   },
-                  style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
             const SizedBox(height: Insets.sm),
