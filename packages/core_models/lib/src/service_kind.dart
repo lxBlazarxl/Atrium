@@ -98,7 +98,6 @@ extension ServiceKindX on ServiceKind {
   /// "BETA" badge in the service picker, on the instance tile, and on the
   /// service's own screen so users know it is not yet fully stable.
   bool get isBeta => switch (this) {
-        ServiceKind.transmission ||
         ServiceKind.deluge ||
         ServiceKind.rtorrent ||
         ServiceKind.lidarr ||

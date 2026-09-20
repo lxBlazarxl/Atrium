@@ -82,7 +82,8 @@ void main() {
   });
 
   test('newer integrations are flagged beta; stable ones are not', () {
-    expect(ServiceKind.transmission.isBeta, isTrue);
+    // Out of beta since its parity pass against the web UI.
+    expect(ServiceKind.transmission.isBeta, isFalse);
     expect(ServiceKind.deluge.isBeta, isTrue);
     expect(ServiceKind.rtorrent.isBeta, isTrue);
     expect(ServiceKind.sonarr.isBeta, isFalse);
