@@ -22,3 +22,5 @@ export 'src/transmission_providers.dart';
 export 'src/transmission_row_strings.dart';
 export 'src/transmission_speed_dialog.dart';
 export 'src/transmission_torrent_actions.dart';
+export 'src/transmission_torrent_row.dart';
+export 'src/transmission_torrents_tab.dart';
