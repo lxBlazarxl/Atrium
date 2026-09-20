@@ -30,19 +30,6 @@ class MySpeedHome extends ConsumerStatefulWidget {
 class _MySpeedHomeState extends ConsumerState<MySpeedHome> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  void _refreshActiveTab(int tabIndex) {
-    switch (tabIndex) {
-      case 0:
-        ref.invalidate(myspeedStatusProvider(widget.instance));
-        ref.invalidate(myspeed24HourTestsProvider(widget.instance));
-        ref.read(myspeedHistoryProvider(widget.instance).notifier).fetchDiff();
-      case 1:
-        ref.read(myspeedHistoryProvider(widget.instance).notifier).reload();
-      case 2:
-        ref.invalidate(myspeedConfigProvider(widget.instance));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final int currentIndex =
@@ -100,13 +87,6 @@ class _MySpeedHomeState extends ConsumerState<MySpeedHome> {
               ],
             ],
           ),
-          actions: <Widget>[
-            IconButton(
-              tooltip: 'Refresh',
-              icon: const Icon(Icons.refresh),
-              onPressed: () => _refreshActiveTab(currentIndex),
-            ),
-          ],
         ),
         body: IndexedStack(
           index: currentIndex,
