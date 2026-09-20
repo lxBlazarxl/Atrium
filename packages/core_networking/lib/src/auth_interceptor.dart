@@ -55,6 +55,13 @@ class AuthInterceptor extends Interceptor {
           case ServiceKind.ombi:
             // Ombi reads only its own header; X-Api-Key gets a 401.
             options.headers['ApiKey'] = apiKey;
+          case ServiceKind.myspeed:
+            // MySpeed checks 'password' and 'x-password' headers when password
+            // protection is configured on the instance.
+            if (apiKey.isNotEmpty) {
+              options.headers['password'] = apiKey;
+              options.headers['x-password'] = Uri.encodeComponent(apiKey);
+            }
           case _:
             options.headers['X-Api-Key'] = apiKey;
         }

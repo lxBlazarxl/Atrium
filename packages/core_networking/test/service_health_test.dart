@@ -93,6 +93,33 @@ void main() {
         );
       }
     });
+
+    test('MySpeed 200 is ok, 401/403 auth error is warning', () {
+      expect(
+        interpretServiceHealthResponse(
+          ServiceKind.myspeed,
+          200,
+          <dynamic>[],
+        ),
+        Health.ok,
+      );
+      expect(
+        interpretServiceHealthResponse(
+          ServiceKind.myspeed,
+          401,
+          <String, dynamic>{'message': 'Please provide the correct password in the header'},
+        ),
+        Health.warning,
+      );
+      expect(
+        interpretServiceHealthResponse(
+          ServiceKind.myspeed,
+          403,
+          <String, dynamic>{'message': 'Forbidden'},
+        ),
+        Health.warning,
+      );
+    });
   });
 }
 

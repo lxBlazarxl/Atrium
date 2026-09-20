@@ -13,7 +13,7 @@ import 'package:core_models/core_models.dart';
 /// agrees with what the interceptor actually sends for every kind.
 Set<String> serviceAuthHeaderNames(ServiceKind kind, InstanceAuth auth) {
   switch (auth) {
-    case InstanceAuthApiKey():
+    case InstanceAuthApiKey(:final String apiKey):
       switch (kind) {
         case ServiceKind.speedtestTracker || ServiceKind.tracearr:
           return const <String>{'Authorization', 'Accept'};
@@ -22,6 +22,10 @@ Set<String> serviceAuthHeaderNames(ServiceKind kind, InstanceAuth auth) {
           return const <String>{};
         case ServiceKind.ombi:
           return const <String>{'ApiKey'};
+        case ServiceKind.myspeed:
+          return apiKey.isEmpty
+              ? const <String>{}
+              : const <String>{'password', 'x-password'};
         case _:
           return const <String>{'X-Api-Key'};
       }

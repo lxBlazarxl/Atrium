@@ -163,6 +163,7 @@ extension ServiceKindX on ServiceKind {
         ServiceKind.lidarr ||
         ServiceKind.unraid ||
         ServiceKind.gluetun ||
+        ServiceKind.myspeed ||
         ServiceKind.ombi =>
           AuthStyle.apiKey,
         // Transmission and rTorrent both use HTTP Basic, and for both it is
@@ -183,7 +184,7 @@ extension ServiceKindX on ServiceKind {
         ServiceKind.glances => AuthStyle.none,
         ServiceKind.speedtestTracker => AuthStyle.bearerToken,
         ServiceKind.beszel => AuthStyle.userPass,
-        ServiceKind.dashdot || ServiceKind.myspeed => AuthStyle.none,
+        ServiceKind.dashdot => AuthStyle.none,
       };
 
   /// Broad role of the service in the stack - used for grouping in the

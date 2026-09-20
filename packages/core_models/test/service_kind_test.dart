@@ -49,12 +49,12 @@ void main() {
     expect(ServiceKind.ombi.acceptsTorrents, isFalse);
   });
 
-  test('MySpeed is registered as a no-auth analytics service', () {
+  test('MySpeed is registered as an apiKey analytics service', () {
     expect(ServiceKind.myspeed.displayName, 'MySpeed');
     expect(ServiceKind.myspeed.tagline, 'Internet speed');
     expect(ServiceKind.myspeed.isBeta, isFalse);
     expect(ServiceKind.myspeed.defaultPort, 5216);
-    expect(ServiceKind.myspeed.authStyle, AuthStyle.none);
+    expect(ServiceKind.myspeed.authStyle, AuthStyle.apiKey);
     expect(ServiceKind.myspeed.role, ServiceRole.analytics);
     expect(ServiceKind.myspeed.acceptsTorrents, isFalse);
   });
