@@ -23,9 +23,10 @@ Set<String> serviceAuthHeaderNames(ServiceKind kind, InstanceAuth auth) {
         case ServiceKind.ombi:
           return const <String>{'ApiKey'};
         case ServiceKind.myspeed:
-          return apiKey.isEmpty
-              ? const <String>{}
-              : const <String>{'password', 'x-password'};
+          if (apiKey.isEmpty) return const <String>{};
+          return fitsHeaderValue(apiKey)
+              ? const <String>{'password', 'x-password'}
+              : const <String>{'x-password'};
         case _:
           return const <String>{'X-Api-Key'};
       }
@@ -121,3 +122,11 @@ String? headerConflictWarning(String headerName, List<Instance> instances) {
       'it, such as Authelia. nginx basic auth only reads this header.');
   return buffer.toString();
 }
+
+/// Whether [value] can travel as an HTTP header value at all. Dart's
+/// HttpHeaders refuses anything outside printable ASCII, and it refuses
+/// it by throwing from inside the request, so a secret that does not fit
+/// has to go some other way (MySpeed reads a URL-encoded copy).
+bool fitsHeaderValue(String value) => _printableAscii.hasMatch(value);
+
+final RegExp _printableAscii = RegExp(r'^[ -~]*$');

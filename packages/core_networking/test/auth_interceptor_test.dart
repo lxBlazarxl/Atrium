@@ -74,6 +74,28 @@ void main() {
     expect(request.headers.containsKey('Authorization'), isFalse);
   });
 
+  test('a MySpeed password outside ASCII travels only as x-password',
+      () async {
+    // Dart's HttpHeaders throws on such a value, so the raw header would
+    // fail every request rather than merely be ignored.
+    const String password = 'pässwörd';
+    final _RecordingAdapter adapter = _RecordingAdapter();
+    final Dio dio = Dio(BaseOptions(baseUrl: 'https://myspeed.example.test/'))
+      ..httpClientAdapter = adapter
+      ..interceptors.add(
+        const AuthInterceptor(
+          kind: ServiceKind.myspeed,
+          auth: InstanceAuth.apiKey(apiKey: password),
+        ),
+      );
+
+    await dio.get<dynamic>('api/speedtests');
+
+    final RequestOptions request = adapter.request!;
+    expect(request.headers.containsKey('password'), isFalse);
+    expect(request.headers['x-password'], Uri.encodeComponent(password));
+  });
+
   test('MySpeed with empty password sets no auth headers', () async {
     final _RecordingAdapter adapter = _RecordingAdapter();
     final Dio dio = Dio(BaseOptions(baseUrl: 'https://myspeed.example.test/'))

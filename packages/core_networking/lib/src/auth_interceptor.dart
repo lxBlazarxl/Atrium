@@ -5,6 +5,8 @@ import 'package:core_models/core_models.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 
+import 'service_auth_headers.dart';
+
 /// Adds the auth header(s) appropriate for the [Instance]'s service kind.
 ///
 /// Decoder for the various conventions across the stack:
@@ -56,11 +58,14 @@ class AuthInterceptor extends Interceptor {
             // Ombi reads only its own header; X-Api-Key gets a 401.
             options.headers['ApiKey'] = apiKey;
           case ServiceKind.myspeed:
-            // MySpeed checks 'password' and 'x-password' headers when password
-            // protection is configured on the instance.
+            // MySpeed 1.0.9 reads a raw 'password' header; newer builds
+            // prefer a URL-encoded 'x-password' and fall back to the raw
+            // one. The raw header only goes when Dart will let it through:
+            // a password outside printable ASCII would otherwise throw
+            // inside every request.
             if (apiKey.isNotEmpty) {
-              options.headers['password'] = apiKey;
               options.headers['x-password'] = Uri.encodeComponent(apiKey);
+              if (fitsHeaderValue(apiKey)) options.headers['password'] = apiKey;
             }
           case _:
             options.headers['X-Api-Key'] = apiKey;

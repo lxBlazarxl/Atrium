@@ -54,6 +54,13 @@ void main() {
       serviceAuthHeaderNames(ServiceKind.myspeed, blankApiKey),
       isEmpty,
     );
+    expect(
+      serviceAuthHeaderNames(
+        ServiceKind.myspeed,
+        const InstanceAuth.apiKey(apiKey: 'pässwörd'),
+      ),
+      <String>{'x-password'},
+    );
   });
 
   test('the five kinds that spend Authorization on themselves are named', () {
