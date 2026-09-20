@@ -33,14 +33,84 @@ final myspeedStatusProvider =
   return api.getSpeedtestStatus();
 });
 
-/// Fetches the last 24 hours of speedtests from `GET /api/speedtests?hours=24`.
-final myspeedHistoryProvider =
+/// Notifier that caches historical speedtests in memory across tab switches.
+///
+/// Fetches all speedtests from `GET /api/speedtests` once and retains them.
+/// Calling [fetchDiff] queries only the latest batch and prepends newly created
+/// tests without reloading the entire dataset, avoiding UI lag.
+class MySpeedHistoryNotifier extends AsyncNotifier<List<MySpeedTest>> {
+  MySpeedHistoryNotifier(this.instance);
+
+  final Instance instance;
+
+  @override
+  Future<List<MySpeedTest>> build() async {
+    final MySpeedApi api = await ref.watch(myspeedApiProvider(instance).future);
+    return api.getSpeedtests(limit: 1000);
+  }
+
+  /// Incremental update: fetches only the most recent tests (limit: 10)
+  /// and prepends any new tests not present in local state.
+  Future<void> fetchDiff() async {
+    final List<MySpeedTest>? current = state.asData?.value;
+    if (current == null || current.isEmpty) {
+      ref.invalidateSelf();
+      return;
+    }
+
+    try {
+      final MySpeedApi api = await ref.read(myspeedApiProvider(instance).future);
+      final List<MySpeedTest> latestBatch = await api.getSpeedtests(limit: 10);
+
+      final Set<String> existingIds = current.map((MySpeedTest t) => t.id).toSet();
+      final List<MySpeedTest> newItems = latestBatch
+          .where((MySpeedTest t) => !existingIds.contains(t.id))
+          .toList();
+
+      if (newItems.isNotEmpty) {
+        final List<MySpeedTest> merged = <MySpeedTest>[
+          ...newItems,
+          ...current,
+        ];
+        merged.sort((a, b) {
+          if (a.createdAt == null) return 1;
+          if (b.createdAt == null) return -1;
+          return b.createdAt!.compareTo(a.createdAt!);
+        });
+        state = AsyncData<List<MySpeedTest>>(merged);
+      }
+    } catch (_) {
+      // Non-fatal background diff check
+    }
+  }
+
+  /// Full reload of all speedtests (e.g. on manual pull-to-refresh).
+  Future<void> reload() async {
+    state = const AsyncLoading<List<MySpeedTest>>();
+    state = await AsyncValue.guard(() async {
+      final MySpeedApi api = await ref.read(myspeedApiProvider(instance).future);
+      return api.getSpeedtests(limit: 1000);
+    });
+  }
+}
+
+/// Provider for historical speedtests.
+///
+/// Kept alive in memory so that switching between tabs never triggers
+/// repeated network requests.
+final myspeedHistoryProvider = AsyncNotifierProvider.family<
+    MySpeedHistoryNotifier,
+    List<MySpeedTest>,
+    Instance>(MySpeedHistoryNotifier.new);
+
+/// Fetches only the last 24 hours of speedtest results from `GET /api/speedtests?hours=24`.
+final myspeed24HourTestsProvider =
     FutureProvider.autoDispose.family<List<MySpeedTest>, Instance>((
   Ref ref,
   Instance instance,
 ) async {
   final MySpeedApi api = await ref.watch(myspeedApiProvider(instance).future);
-  return api.getHistory();
+  return api.get24HourSpeedtests();
 });
 
 /// Provides the single most recent speedtest result, or null if no results exist.
@@ -49,11 +119,19 @@ final myspeedLatestTestProvider =
   Ref ref,
   Instance instance,
 ) {
+  final AsyncValue<List<MySpeedTest>> recent24h =
+      ref.watch(myspeed24HourTestsProvider(instance));
+  final List<MySpeedTest>? list24h = recent24h.asData?.value;
+  if (list24h != null && list24h.isNotEmpty) {
+    return list24h.first;
+  }
   final AsyncValue<List<MySpeedTest>> history =
       ref.watch(myspeedHistoryProvider(instance));
-  final List<MySpeedTest>? list = history.asData?.value;
-  if (list == null || list.isEmpty) return null;
-  return list.first;
+  final List<MySpeedTest>? historyList = history.asData?.value;
+  if (historyList != null && historyList.isNotEmpty) {
+    return historyList.first;
+  }
+  return null;
 });
 
 /// Fetches server configuration from `GET /api/config`.

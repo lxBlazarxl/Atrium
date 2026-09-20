@@ -18,14 +18,83 @@ class MySpeedApi {
     return MySpeedStatus.fromResponse(response.data);
   }
 
-  /// Fetches historical speedtests via `GET /api/speedtests?hours=24`.
-  Future<List<MySpeedTest>> getHistory({int hours = 24}) async {
+  /// Fetches speedtests via `GET /api/speedtests`.
+  ///
+  /// Optional [limit] specifies max records (e.g. 1000 for all tests, 10 for incremental diff).
+  /// Optional [afterId] specifies pagination cursor.
+  Future<List<MySpeedTest>> getSpeedtests({int? limit, int? afterId}) async {
+    final Map<String, dynamic> params = <String, dynamic>{};
+    if (limit != null) params['limit'] = limit;
+    if (afterId != null) params['afterId'] = afterId;
+
     final Response<dynamic> response = await _dio.get<dynamic>(
       'api/speedtests',
-      queryParameters: <String, dynamic>{'hours': hours},
+      queryParameters: params.isNotEmpty ? params : null,
     );
 
-    final dynamic data = response.data;
+    return _parseTests(response.data);
+  }
+
+  /// Fetches speedtests from the past 24 hours via `GET /api/speedtests?hours=24`.
+  ///
+  /// Passes `hours=24` and `hour=24` query parameters to match various MySpeed backend
+  /// implementations and performs a client-side cutoff timestamp filter as a safeguard.
+  Future<List<MySpeedTest>> get24HourSpeedtests() async {
+    final Response<dynamic> response = await _dio.get<dynamic>(
+      'api/speedtests',
+      queryParameters: <String, dynamic>{
+        'hours': 24,
+        'hour': 24,
+      },
+    );
+
+    final List<MySpeedTest> tests = _parseTests(response.data);
+    final DateTime cutoff = DateTime.now().subtract(const Duration(hours: 24));
+    return tests.where((MySpeedTest t) {
+      if (t.createdAt == null) return true;
+      return t.createdAt!.isAfter(cutoff);
+    }).toList();
+  }
+
+  /// Fetches historical speedtests via `GET /api/speedtests`.
+  ///
+  /// Optional [hours] param supported if backend implements it.
+  Future<List<MySpeedTest>> getHistory({int? hours, int? hour}) async {
+    final Map<String, dynamic> params = <String, dynamic>{};
+    if (hours != null) params['hours'] = hours;
+    if (hour != null) params['hour'] = hour;
+
+    final Response<dynamic> response = await _dio.get<dynamic>(
+      'api/speedtests',
+      queryParameters: params.isNotEmpty ? params : null,
+    );
+
+    return _parseTests(response.data);
+  }
+
+  /// Fetches MySpeed server configuration via `GET /api/config`.
+  Future<MySpeedConfig> getConfig() async {
+    final Response<dynamic> response = await _dio.get<dynamic>('api/config');
+    return MySpeedConfig.fromResponse(response.data);
+  }
+
+  /// Triggers a manual speedtest run on the server.
+  ///
+  /// Calls `POST /api/speedtests/run` with fallback to `POST /api/speedtests`.
+  Future<bool> runSpeedtest() async {
+    try {
+      final Response<dynamic> response = await _dio.post<dynamic>('api/speedtests/run');
+      return (response.statusCode ?? 0) >= 200 && (response.statusCode ?? 0) < 300;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        final Response<dynamic> alt = await _dio.post<dynamic>('api/speedtests');
+        return (alt.statusCode ?? 0) >= 200 && (alt.statusCode ?? 0) < 300;
+      }
+      rethrow;
+    }
+  }
+
+  List<MySpeedTest> _parseTests(dynamic data) {
     final List<dynamic> list;
     if (data is List) {
       list = data;
@@ -52,26 +121,5 @@ class MySpeedApi {
     });
 
     return tests;
-  }
-
-  /// Fetches MySpeed server configuration via `GET /api/config`.
-  Future<MySpeedConfig> getConfig() async {
-    final Response<dynamic> response = await _dio.get<dynamic>('api/config');
-    return MySpeedConfig.fromResponse(response.data);
-  }
-
-  /// Triggers a manual speedtest run on the server.
-  Future<bool> runSpeedtest() async {
-    try {
-      final Response<dynamic> response = await _dio.post<dynamic>('api/speedtests');
-      return (response.statusCode ?? 0) >= 200 && (response.statusCode ?? 0) < 300;
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
-        // Fallback to alternative endpoint if available
-        final Response<dynamic> alt = await _dio.post<dynamic>('api/speedtests/run');
-        return (alt.statusCode ?? 0) >= 200 && (alt.statusCode ?? 0) < 300;
-      }
-      rethrow;
-    }
   }
 }

@@ -34,9 +34,10 @@ class _MySpeedHomeState extends ConsumerState<MySpeedHome> {
     switch (tabIndex) {
       case 0:
         ref.invalidate(myspeedStatusProvider(widget.instance));
-        ref.invalidate(myspeedHistoryProvider(widget.instance));
+        ref.invalidate(myspeed24HourTestsProvider(widget.instance));
+        ref.read(myspeedHistoryProvider(widget.instance).notifier).fetchDiff();
       case 1:
-        ref.invalidate(myspeedHistoryProvider(widget.instance));
+        ref.read(myspeedHistoryProvider(widget.instance).notifier).reload();
       case 2:
         ref.invalidate(myspeedConfigProvider(widget.instance));
     }
