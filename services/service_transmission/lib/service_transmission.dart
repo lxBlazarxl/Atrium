@@ -13,6 +13,7 @@ export 'src/models/transmission_torrent.dart';
 export 'src/transmission_add_sheet.dart';
 export 'src/transmission_api.dart';
 export 'src/transmission_detail_screen.dart';
+export 'src/transmission_files_tree.dart';
 export 'src/transmission_format.dart';
 export 'src/transmission_home.dart';
 export 'src/transmission_info_strings.dart';
