@@ -106,12 +106,7 @@ class _MySpeedInstanceBlockState extends ConsumerState<_MySpeedInstanceBlock> {
       if (!stillRunning) {
         timer.cancel();
         setState(() => _isLocallyRunning = false);
-        ref.invalidate(myspeed24HourTestsProvider(widget.instance));
-        try {
-          await ref
-              .read(myspeedHistoryProvider(widget.instance).notifier)
-              .fetchDiff();
-        } catch (_) {}
+        ref.invalidate(myspeedRecentTestsProvider(widget.instance));
       }
     });
   }
@@ -163,8 +158,12 @@ class _MySpeedInstanceBlockState extends ConsumerState<_MySpeedInstanceBlock> {
     final ColorScheme colors = theme.colorScheme;
     final AsyncValue<MySpeedStatus> statusAsync =
         ref.watch(myspeedStatusProvider(widget.instance));
-    final MySpeedTest? latest =
-        ref.watch(myspeedLatestTestProvider(widget.instance));
+    // The newest few tests at any age: the day's window is empty for a
+    // weekly schedule, and the History tab's list is far more than a card
+    // needs.
+    final MySpeedTest? latest = myspeedLatestGood(
+      ref.watch(myspeedRecentTestsProvider(widget.instance)).value,
+    );
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
@@ -209,7 +208,7 @@ class _MySpeedInstanceBlockState extends ConsumerState<_MySpeedInstanceBlock> {
                       onRetry: () {
                         ref.invalidate(myspeedStatusProvider(widget.instance));
                         ref.invalidate(
-                          myspeed24HourTestsProvider(widget.instance),
+                          myspeedRecentTestsProvider(widget.instance),
                         );
                       },
                     ),

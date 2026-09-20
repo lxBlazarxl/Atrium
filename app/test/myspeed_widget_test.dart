@@ -40,7 +40,7 @@ void main() {
           myspeedStatusProvider(instance).overrideWith(
             (Ref ref) async => const MySpeedStatus(isRunning: false),
           ),
-          myspeed24HourTestsProvider(instance).overrideWith(
+          myspeedRecentTestsProvider(instance).overrideWith(
             (Ref ref) async => <MySpeedTest>[sampleTest],
           ),
         ],
@@ -80,7 +80,7 @@ void main() {
           myspeedStatusProvider(instance).overrideWith(
             (Ref ref) async => const MySpeedStatus(isRunning: false),
           ),
-          myspeed24HourTestsProvider(instance).overrideWith(
+          myspeedRecentTestsProvider(instance).overrideWith(
             (Ref ref) async => <MySpeedTest>[sampleTest],
           ),
           myspeedApiProvider(instance).overrideWith(
@@ -138,7 +138,7 @@ void main() {
           myspeedStatusProvider(instance).overrideWith(
             (Ref ref) async => const MySpeedStatus(isRunning: true),
           ),
-          myspeed24HourTestsProvider(instance).overrideWith(
+          myspeedRecentTestsProvider(instance).overrideWith(
             (Ref ref) async => <MySpeedTest>[sampleTest],
           ),
         ],
@@ -194,7 +194,7 @@ void main() {
           myspeedStatusProvider(instance).overrideWith(
             (Ref ref) async => const MySpeedStatus(isRunning: false),
           ),
-          myspeed24HourTestsProvider(instance).overrideWith(
+          myspeedRecentTestsProvider(instance).overrideWith(
             (Ref ref) async => <MySpeedTest>[sampleTest],
           ),
         ],
@@ -224,7 +224,7 @@ void main() {
           myspeedStatusProvider(instance).overrideWith(
             (Ref ref) async => const MySpeedStatus(isRunning: false),
           ),
-          myspeed24HourTestsProvider(instance).overrideWith(
+          myspeedRecentTestsProvider(instance).overrideWith(
             (Ref ref) async => <MySpeedTest>[sampleTest],
           ),
         ],

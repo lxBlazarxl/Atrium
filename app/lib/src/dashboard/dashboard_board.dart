@@ -264,8 +264,7 @@ class DashboardBoard extends ConsumerWidget {
           ref.invalidate(gluetunPublicIpProvider(i));
         case ServiceKind.myspeed:
           ref.invalidate(myspeedStatusProvider(i));
-          ref.invalidate(myspeed24HourTestsProvider(i));
-          ref.invalidate(myspeedHistoryProvider(i));
+          ref.invalidate(myspeedRecentTestsProvider(i));
         default:
           break;
       }
