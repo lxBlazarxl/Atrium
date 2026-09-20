@@ -121,6 +121,11 @@ Atrium is a **controller** app. Video playback was removed by design
   and health, system with per-core CPU load and an About card, Docker
   containers with a detail sheet and start/stop/pause/resume, and virtual
   machines with start, shut down, pause, resume, reboot, force stop and reset
+- **MySpeed** (added 2026-09-20 by lxBlazarxl, live-verified against 1.0.9):
+  execution status with a manual run, the last 24 hours of results, a
+  history with averages and a search by test id, the server's config and
+  storage figures. No password support yet, so a MySpeed with a password
+  set cannot be added
 - **Speedtest Tracker** (live-verified): authenticated 1.1+ result history,
   latest metrics, combined download / upload chart, multi-instance dashboard
   widget, and confirmed 1.6+ remote runs with queued/running/terminal-state
