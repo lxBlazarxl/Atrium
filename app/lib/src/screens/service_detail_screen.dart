@@ -30,6 +30,7 @@ import 'package:service_unraid/service_unraid.dart';
 import 'package:service_gluetun/service_gluetun.dart';
 import 'package:service_navidrome/service_navidrome.dart';
 import 'package:service_ombi/service_ombi.dart';
+import 'package:service_myspeed/service_myspeed.dart';
 
 import 'dashboard_screen.dart';
 
@@ -116,6 +117,15 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
     }
     if (instance.kind == ServiceKind.navidrome) {
       return NavidromeHome(
+        instance: instance,
+        drawer: ServicesDrawer(
+          instances: ref.watch(activeInstancesProvider),
+          profile: ref.watch(activeProfileProvider),
+        ),
+      );
+    }
+    if (instance.kind == ServiceKind.myspeed) {
+      return MySpeedHome(
         instance: instance,
         drawer: ServicesDrawer(
           instances: ref.watch(activeInstancesProvider),
@@ -346,6 +356,7 @@ class _ServiceDetailScreenState extends ConsumerState<ServiceDetailScreen> {
       ServiceKind.gluetun => GluetunHome(instance: instance),
       ServiceKind.navidrome => const SizedBox.shrink(),
       ServiceKind.ombi => OmbiHome(instance: instance),
+      ServiceKind.myspeed => const SizedBox.shrink(),
     };
   }
 }

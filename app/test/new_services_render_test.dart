@@ -18,6 +18,7 @@ import 'package:service_plex/service_plex.dart';
 import 'package:service_radarr/service_radarr.dart';
 import 'package:service_sabnzbd/service_sabnzbd.dart';
 import 'package:service_tautulli/service_tautulli.dart';
+import 'package:service_myspeed/service_myspeed.dart';
 import 'package:atrium/src/preferences.dart';
 import 'package:atrium/src/screens/calendar_screen.dart';
 
@@ -398,5 +399,23 @@ void main() {
 
     expect(find.text('Radiohead - A Moon Shaped Pool'), findsOneWidget);
     expect(find.text('Downloaded'), findsOneWidget);
+  });
+
+  testWidgets('MySpeedHome renders', (WidgetTester tester) async {
+    final Instance myspeed = _instance(ServiceKind.myspeed);
+    await _pump(
+      tester,
+      <Override>[
+        myspeedStatusProvider(myspeed).overrideWith(
+          (ref) async => const MySpeedStatus(isRunning: false),
+        ),
+      ],
+      MySpeedHome(instance: myspeed),
+      pumps: 2,
+    );
+
+    expect(find.text('Execution status'), findsOneWidget);
+    expect(find.text('Idle'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
   });
 }

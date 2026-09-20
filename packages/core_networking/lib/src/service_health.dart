@@ -113,6 +113,8 @@ enum _HealthMode {
       // response is only worth anything once the envelope has been read;
       // see the navidrome arm of [interpretServiceHealthResponse].
       return (path: 'rest/ping.view', mode: _HealthMode.authed);
+    case ServiceKind.myspeed:
+      return (path: 'api/speedtests', mode: _HealthMode.authed);
   }
 }
 

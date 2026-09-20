@@ -560,6 +560,24 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
   List<Widget> _authFields() {
     switch (_kind.authStyle) {
       case AuthStyle.apiKey:
+        if (_kind == ServiceKind.myspeed) {
+          return <Widget>[
+            TextFormField(
+              controller: _apiKey,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Password (optional)',
+                helperText:
+                    'Leave empty if password protection is disabled on your MySpeed instance.',
+              ),
+              obscureText: true,
+              autocorrect: false,
+              enableSuggestions: false,
+              onChanged: _clearConnectionTest,
+              validator: (String? v) => null,
+            ),
+          ];
+        }
         // Gluetun's control server can run without auth, through a role with
         // auth = "none", and then there is no key to give.
         final bool keyOptional = _kind == ServiceKind.gluetun;
@@ -574,6 +592,7 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
                   : null,
             ),
             autocorrect: false,
+            onChanged: _clearConnectionTest,
             validator: (String? v) =>
                 !keyOptional && (v == null || v.trim().isEmpty)
                     ? 'Required'
