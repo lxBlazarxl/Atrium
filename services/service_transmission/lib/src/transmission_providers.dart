@@ -159,6 +159,36 @@ final transmissionSortFieldProvider =
 final transmissionSortDescendingProvider =
     StateProvider.family<bool, Instance>((Ref ref, Instance _) => false);
 
+/// Which of the home's tabs is showing: 0 Torrents, 1 Settings.
+final transmissionTabProvider =
+    StateProvider.family<int, Instance>((Ref ref, Instance _) => 0);
+
+/// The search box's text. Matches names and labels.
+final transmissionSearchProvider =
+    StateProvider.family<String, Instance>((Ref ref, Instance _) => '');
+
+/// Compact rows, the web UI's toggle. Kept for the session like the sort.
+final transmissionCompactProvider =
+    StateProvider.family<bool, Instance>((Ref ref, Instance _) => false);
+
+/// Hashes of the rows the user long-pressed into a selection. Non-empty is
+/// selection mode. autoDispose so leaving the screen clears it.
+final transmissionSelectionProvider =
+    StateProvider.autoDispose.family<Set<String>, Instance>(
+  (Ref ref, Instance _) => <String>{},
+);
+
+/// Free bytes at a folder on the daemon's host, or null when it cannot tell.
+final transmissionFreeSpaceProvider =
+    FutureProvider.autoDispose.family<int?, (Instance, String)>((
+  Ref ref,
+  (Instance, String) key,
+) async {
+  final TransmissionApi api =
+      await ref.watch(transmissionApiProvider(key.$1).future);
+  return api.freeSpace(key.$2);
+});
+
 /// Every torrent on the instance, unfiltered. This is the polling provider and
 /// the one other features should watch.
 ///
@@ -184,16 +214,20 @@ final transmissionTorrentsProvider =
   Ref ref,
   Instance instance,
 ) async {
-  final List<TransmissionTorrent> all =
-      await ref.watch(transmissionRawTorrentsProvider(instance).future);
+  // Every synchronous dependency is watched before the await: a Ref must not
+  // be used after an async gap once the provider has been disposed, which
+  // happens whenever the list refreshes with nobody listening yet.
   final TransmissionFilter filter =
       ref.watch(transmissionFilterProvider(instance));
   final TransmissionSortField sort =
       ref.watch(transmissionSortFieldProvider(instance));
   final bool descending =
       ref.watch(transmissionSortDescendingProvider(instance));
+  final String search = ref.watch(transmissionSearchProvider(instance));
+  final List<TransmissionTorrent> all =
+      await ref.watch(transmissionRawTorrentsProvider(instance).future);
   return sortTransmissionTorrents(
-    filterTransmissionTorrents(all, filter),
+    filterTransmissionTorrents(all, filter, search: search),
     sort,
     descending: descending,
   );
