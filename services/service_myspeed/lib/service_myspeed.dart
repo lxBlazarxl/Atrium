@@ -7,3 +7,4 @@ export 'src/myspeed_providers.dart';
 export 'src/tabs/myspeed_config_tab.dart';
 export 'src/tabs/myspeed_history_tab.dart';
 export 'src/tabs/myspeed_status_tab.dart';
+export 'src/widgets/myspeed_test_card.dart';
