@@ -10,6 +10,14 @@ import '../models/myspeed_test.dart';
 import '../myspeed_providers.dart';
 import '../widgets/myspeed_test_card.dart';
 
+/// Tab 0: Status & control tab.
+///
+/// Displays:
+/// 1. Execution status (Running pulse / Idle pill).
+/// 2. Manual speedtest trigger button (no flash icon).
+/// 3. Most recent speedtest result with accurate time.
+/// 4. 24-hour speedtest results with accurate times.
+/// Polls information every 5 seconds.
 class MySpeedStatusTab extends ConsumerStatefulWidget {
   const MySpeedStatusTab({required this.instance, super.key});
 
@@ -50,12 +58,19 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
       newStatus = null;
     }
 
-    if (!mounted) return;
+    final bool isNowRunning = newStatus?.isRunning ?? false;
 
-    if (_isLocallyRunning && (newStatus == null || !newStatus.isRunning)) {
-      setState(() => _isLocallyRunning = false);
-      ref.invalidate(myspeed24HourTestsProvider(widget.instance));
-      ref.read(myspeedHistoryProvider(widget.instance).notifier).fetchDiff();
+    if (mounted) {
+      if (isNowRunning && _isLocallyRunning) {
+        setState(() => _isLocallyRunning = false);
+      } else if (wasRunning && !isNowRunning && _isLocallyRunning) {
+        setState(() => _isLocallyRunning = false);
+      }
+    }
+
+    // If speedtest just transitioned from running to idle, update history diff
+    if (wasRunning && !isNowRunning) {
+      await ref.read(myspeedHistoryProvider(widget.instance).notifier).fetchDiff();
     }
   }
 
@@ -86,6 +101,7 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
 
     if (confirmed != true || !mounted) return;
 
+    // Immediately reflect running state in UI
     setState(() => _isLocallyRunning = true);
 
     try {
@@ -121,6 +137,7 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
       onRetry: () {
         ref.invalidate(myspeedStatusProvider(widget.instance));
         ref.invalidate(myspeed24HourTestsProvider(widget.instance));
+        ref.invalidate(myspeedHistoryProvider(widget.instance));
       },
       data: (MySpeedStatus status) {
         final MySpeedStatus effectiveStatus = _isLocallyRunning
@@ -146,7 +163,7 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
             children: <Widget>[
               _buildStatusCard(context, effectiveStatus),
               const SizedBox(height: Insets.md),
-              _buildLatestResultCard(context, latestTest),
+              _buildLatestResultCard(context, latestTest, speedtests24hAsync),
               const SizedBox(height: Insets.lg),
               Divider(color: colors.outlineVariant.withValues(alpha: 0.4)),
               const SizedBox(height: Insets.md),
@@ -161,7 +178,6 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
   Widget _buildStatusCard(BuildContext context, MySpeedStatus status) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colors = theme.colorScheme;
-    final Color accent = ServiceVisuals.accent(widget.instance.kind);
     final bool isRunning = status.isRunning;
 
     return Card(
@@ -170,14 +186,12 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
         borderRadius: BorderRadius.circular(16),
         side: BorderSide(
           color: isRunning
-              ? accent.withValues(alpha: 0.6)
+              ? colors.primary.withValues(alpha: 0.5)
               : colors.outlineVariant.withValues(alpha: 0.5),
           width: isRunning ? 1.5 : 1.0,
         ),
       ),
-      color: isRunning
-          ? accent.withValues(alpha: 0.08)
-          : colors.surfaceContainerHighest.withValues(alpha: 0.3),
+      color: colors.surfaceContainer,
       child: Padding(
         padding: const EdgeInsets.all(Insets.lg),
         child: Column(
@@ -189,12 +203,12 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: isRunning
-                        ? accent.withValues(alpha: 0.2)
+                        ? colors.primaryContainer.withValues(alpha: 0.35)
                         : colors.surfaceContainerHigh,
                   ),
                   child: Icon(
                     isRunning ? Icons.network_check_rounded : Icons.speed_rounded,
-                    color: isRunning ? accent : colors.onSurfaceVariant,
+                    color: isRunning ? colors.primary : colors.onSurfaceVariant,
                     size: 28,
                   ),
                 ),
@@ -211,12 +225,16 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
                       ),
                       const SizedBox(height: 2),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
-                          Text(
-                            isRunning ? 'Speedtest Running' : 'Idle',
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: isRunning ? accent : colors.onSurface,
+                          Flexible(
+                            child: Text(
+                              isRunning ? 'Speedtest Running' : 'Idle',
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: isRunning ? colors.primary : colors.onSurface,
+                              ),
                             ),
                           ),
                           if (isRunning) ...<Widget>[
@@ -226,7 +244,7 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
                               height: 14,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: accent,
+                                color: colors.primary,
                               ),
                             ),
                           ],
@@ -242,12 +260,12 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
                   ),
                   decoration: BoxDecoration(
                     color: isRunning
-                        ? accent.withValues(alpha: 0.15)
+                        ? colors.primaryContainer.withValues(alpha: 0.35)
                         : colors.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: isRunning
-                          ? accent.withValues(alpha: 0.5)
+                          ? colors.primary.withValues(alpha: 0.5)
                           : colors.outlineVariant.withValues(alpha: 0.4),
                     ),
                   ),
@@ -255,7 +273,7 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
                     isRunning ? 'ACTIVE' : 'IDLE',
                     style: theme.textTheme.labelSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: isRunning ? accent : colors.onSurfaceVariant,
+                      color: isRunning ? colors.primary : colors.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -307,7 +325,11 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
     );
   }
 
-  Widget _buildLatestResultCard(BuildContext context, MySpeedTest? latest) {
+  Widget _buildLatestResultCard(
+    BuildContext context,
+    MySpeedTest? latest,
+    AsyncValue<List<MySpeedTest>> historyAsync,
+  ) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colors = theme.colorScheme;
 
@@ -326,24 +348,61 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
-                Text(
-                  'Most Recent Result',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  children: <Widget>[
+                    Text(
+                      'Most Recent Result',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (latest != null && latest.id.isNotEmpty) ...<Widget>[
+                      const SizedBox(width: Insets.sm),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colors.primaryContainer.withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: colors.primary.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Text(
+                          '#${latest.id}',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: colors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                if (latest != null)
-                  Text(
-                    '#${latest.id}',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colors.primary,
+                if (latest?.createdAt != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceContainerHighest.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      latest!.formattedDate,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
               ],
             ),
-            const SizedBox(height: Insets.md),
-            if (latest != null)
+            const SizedBox(height: Insets.lg),
+            if (latest != null) ...<Widget>[
               Row(
                 children: <Widget>[
                   Expanded(
@@ -381,8 +440,48 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
                       borderColor: colors.secondary.withValues(alpha: 0.25),
                     ),
                   ),
+                  if (latest.jitter != null) ...<Widget>[
+                    const SizedBox(width: Insets.xs),
+                    Expanded(
+                      child: MySpeedMetricBox(
+                        icon: Icons.graphic_eq_rounded,
+                        label: 'JITTER',
+                        value: latest.jitter!.toStringAsFixed(0),
+                        unit: 'ms',
+                        iconColor: colors.onSurfaceVariant,
+                        boxColor: colors.surfaceContainerHighest.withValues(alpha: 0.35),
+                        borderColor: colors.outlineVariant.withValues(alpha: 0.3),
+                      ),
+                    ),
+                  ],
                 ],
               ),
+              if (latest.server != null && latest.server!.isNotEmpty) ...<Widget>[
+                const SizedBox(height: Insets.md),
+                Divider(color: colors.outlineVariant.withValues(alpha: 0.3)),
+                const SizedBox(height: Insets.xs),
+                Text(
+                  'Server: ${latest.server}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ] else if (historyAsync.isLoading) ...<Widget>[
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(Insets.lg),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+            ] else ...<Widget>[
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: Insets.lg),
+                  child: Text('No completed speedtests in the last 24 hours.'),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -391,7 +490,7 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
 
   Widget _build24HourResultsSection(
     BuildContext context,
-    AsyncValue<List<MySpeedTest>> speedtests24hAsync,
+    AsyncValue<List<MySpeedTest>> historyAsync,
   ) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colors = theme.colorScheme;
@@ -399,25 +498,95 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text(
-          '24-Hour Results',
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: Insets.xs),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: <Widget>[
+              Text(
+                '24-Hour Results',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              historyAsync.maybeWhen(
+                data: (List<MySpeedTest> tests) => Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colors.primaryContainer.withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${tests.length} tests',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: colors.onPrimaryContainer,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                orElse: () => const SizedBox.shrink(),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: Insets.sm),
-        speedtests24hAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Text('Error: $e'),
+        historyAsync.when(
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.all(Insets.xl),
+              child: CircularProgressIndicator(),
+            ),
+          ),
+          error: (Object error, _) => Card(
+            elevation: 0,
+            color: colors.errorContainer.withValues(alpha: 0.2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: colors.error.withValues(alpha: 0.3)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(Insets.md),
+              child: Text(
+                'Error loading 24-hour results: $error',
+                style: theme.textTheme.bodySmall?.copyWith(color: colors.error),
+              ),
+            ),
+          ),
           data: (List<MySpeedTest> tests) {
             if (tests.isEmpty) {
-              return const Text('No results in last 24 hours');
+              return Card(
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  side: BorderSide(
+                    color: colors.outlineVariant.withValues(alpha: 0.6),
+                  ),
+                ),
+                color: colors.surfaceContainer,
+                child: Padding(
+                  padding: const EdgeInsets.all(Insets.xl),
+                  child: Center(
+                    child: Text(
+                      'No speedtests recorded in the past 24 hours.',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+              );
             }
+
             return Column(
-              children: tests.map((t) => Padding(
-                padding: const EdgeInsets.only(bottom: Insets.sm),
-                child: MySpeedTestCard(test: t),
-              )).toList(),
+              children: tests.map((MySpeedTest test) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: Insets.sm),
+                  child: MySpeedTestCard(test: test),
+                );
+              }).toList(),
             );
           },
         ),

@@ -87,7 +87,6 @@ class _MySpeedHistoryTabState extends ConsumerState<MySpeedHistoryTab> {
   Widget _buildSummaryCard(BuildContext context, List<MySpeedTest> tests) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colors = theme.colorScheme;
-    final Color accent = ServiceVisuals.accent(widget.instance.kind);
 
     double sumDown = 0;
     double sumUp = 0;
@@ -125,13 +124,16 @@ class _MySpeedHistoryTabState extends ConsumerState<MySpeedHistoryTab> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: accent.withValues(alpha: 0.15),
+                    color: colors.primaryContainer.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: colors.primary.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Text(
                     '${tests.length} tests',
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: accent,
+                      color: colors.primary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
