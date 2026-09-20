@@ -146,8 +146,6 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
             children: <Widget>[
               _buildStatusCard(context, effectiveStatus),
               const SizedBox(height: Insets.md),
-              _buildRunCard(context, effectiveStatus),
-              const SizedBox(height: Insets.md),
               _buildLatestResultCard(context, latestTest),
               const SizedBox(height: Insets.lg),
               Divider(color: colors.outlineVariant.withValues(alpha: 0.4)),
@@ -174,11 +172,12 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
           color: isRunning
               ? accent.withValues(alpha: 0.6)
               : colors.outlineVariant.withValues(alpha: 0.5),
+          width: isRunning ? 1.5 : 1.0,
         ),
       ),
       color: isRunning
           ? accent.withValues(alpha: 0.08)
-          : colors.surfaceContainer,
+          : colors.surfaceContainerHighest.withValues(alpha: 0.3),
       child: Padding(
         padding: const EdgeInsets.all(Insets.lg),
         child: Column(
@@ -211,23 +210,46 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
                         ),
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        isRunning ? 'Speedtest Running' : 'Idle',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: isRunning ? accent : colors.onSurface,
-                        ),
+                      Row(
+                        children: <Widget>[
+                          Text(
+                            isRunning ? 'Speedtest Running' : 'Idle',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: isRunning ? accent : colors.onSurface,
+                            ),
+                          ),
+                          if (isRunning) ...<Widget>[
+                            const SizedBox(width: Insets.xs),
+                            SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: accent,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: isRunning
                         ? accent.withValues(alpha: 0.15)
                         : colors.surfaceContainerHigh,
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isRunning
+                          ? accent.withValues(alpha: 0.5)
+                          : colors.outlineVariant.withValues(alpha: 0.4),
+                    ),
                   ),
                   child: Text(
                     isRunning ? 'ACTIVE' : 'IDLE',
@@ -239,51 +261,45 @@ class _MySpeedStatusTabState extends ConsumerState<MySpeedStatusTab> {
                 ),
               ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRunCard(BuildContext context, MySpeedStatus status) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colors = theme.colorScheme;
-    final bool isRunning = status.isRunning;
-
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: colors.outlineVariant.withValues(alpha: 0.6)),
-      ),
-      color: colors.surfaceContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(Insets.lg),
-        child: Row(
-          children: <Widget>[
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    'Manual Speedtest',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Trigger an immediate test run',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+            const SizedBox(height: Insets.md),
+            Divider(color: colors.outlineVariant.withValues(alpha: 0.3)),
+            const SizedBox(height: Insets.sm),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                isRunning
+                    ? 'A speedtest is currently executing on your MySpeed instance.'
+                    : 'No speedtest is currently running. Server is ready.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
               ),
             ),
-            FilledButton(
-              onPressed: isRunning ? null : _runSpeedtest,
-              child: const Text('Run Test'),
+            if (status.message != null && status.message!.isNotEmpty) ...<Widget>[
+              const SizedBox(height: Insets.xs),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Message: ${status.message}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.outline,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: Insets.md),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: isRunning ? null : _runSpeedtest,
+                child: isRunning
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Run Test'),
+              ),
             ),
           ],
         ),
