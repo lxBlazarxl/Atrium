@@ -1,20 +1,28 @@
 import 'package:core_models/core_models.dart';
 import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:progress_indicator_m3e/progress_indicator_m3e.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'models/transmission_detail.dart';
 import 'models/transmission_torrent.dart';
 import 'transmission_api.dart';
+import 'transmission_dialogs.dart';
+import 'transmission_files_tree.dart';
 import 'transmission_format.dart';
+import 'transmission_info_strings.dart';
 import 'transmission_providers.dart';
+import 'transmission_row_strings.dart';
+import 'transmission_torrent_actions.dart';
 
-/// Files, peers and trackers for one torrent.
+/// Everything the web UI's inspector shows for one torrent, and every action
+/// its context menu offers, from the app bar.
 ///
-/// The live scalars (status, speeds, progress) come from the list provider that
-/// is already polling, so opening this screen does not start a second poll of
-/// the same data.
+/// The live scalars (status, speeds, progress) come from the list provider
+/// that is already polling, so opening this screen does not start a second
+/// poll of the same data.
 class TransmissionDetailScreen extends ConsumerWidget {
   const TransmissionDetailScreen({
     required this.instance,
@@ -41,16 +49,53 @@ class TransmissionDetailScreen extends ConsumerWidget {
         .firstOrNull;
     final AsyncValue<TransmissionDetail> detail =
         ref.watch(transmissionDetailProvider((instance, hashString)));
+    final bool labels = ref
+            .watch(transmissionSessionProvider(instance))
+            .value
+            ?.supportsLabels ??
+        false;
 
     return DefaultTabController(
       length: 4,
       child: Scaffold(
         appBar: AppBar(
           title: Text(torrent?.name ?? initialName, maxLines: 1),
+          actions: <Widget>[
+            if (torrent != null)
+              PopupMenuButton<TransmissionTorrentAction>(
+                tooltip: 'Torrent actions',
+                itemBuilder: (BuildContext _) => transmissionActionMenuItems(
+                  anyStopped: torrent.status.isStopped,
+                  single: true,
+                  labelsSupported: labels,
+                ),
+                onSelected: (TransmissionTorrentAction a) async {
+                  await performTransmissionAction(
+                    context,
+                    ref,
+                    instance,
+                    a,
+                    <TransmissionTorrent>[torrent],
+                  );
+                  // A removed torrent has no screen to stay on.
+                  final bool removing = a == TransmissionTorrentAction.remove ||
+                      a == TransmissionTorrentAction.trash;
+                  if (!removing || !context.mounted) return;
+                  final List<TransmissionTorrent> now =
+                      ref.read(transmissionRawTorrentsProvider(instance)).value ??
+                          const <TransmissionTorrent>[];
+                  if (!now.any(
+                    (TransmissionTorrent t) => t.hashString == hashString,
+                  )) {
+                    Navigator.of(context).pop();
+                  }
+                },
+              ),
+          ],
           bottom: const TabBar(
             isScrollable: true,
             tabs: <Widget>[
-              Tab(text: 'Overview'),
+              Tab(text: 'Info'),
               Tab(text: 'Files'),
               Tab(text: 'Peers'),
               Tab(text: 'Trackers'),
@@ -64,12 +109,8 @@ class TransmissionDetailScreen extends ConsumerWidget {
           ),
           data: (TransmissionDetail d) => TabBarView(
             children: <Widget>[
-              _OverviewTab(torrent: torrent, detail: d),
-              _FilesTab(
-                instance: instance,
-                hashString: hashString,
-                detail: d,
-              ),
+              _InfoTab(torrent: torrent, detail: d, labelsSupported: labels),
+              _FilesTab(instance: instance, hashString: hashString, detail: d),
               _PeersTab(detail: d),
               _TrackersTab(detail: d),
             ],
@@ -80,76 +121,99 @@ class TransmissionDetailScreen extends ConsumerWidget {
   }
 }
 
-class _OverviewTab extends StatelessWidget {
-  const _OverviewTab({required this.torrent, required this.detail});
+class _InfoTab extends StatelessWidget {
+  const _InfoTab({
+    required this.torrent,
+    required this.detail,
+    required this.labelsSupported,
+  });
 
   final TransmissionTorrent? torrent;
   final TransmissionDetail detail;
+  final bool labelsSupported;
 
   @override
   Widget build(BuildContext context) {
     final ColorScheme scheme = Theme.of(context).colorScheme;
+    final TextTheme text = Theme.of(context).textTheme;
     final TransmissionTorrent? t = torrent;
+    final TransmissionDetail d = detail;
+    final int now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    Widget header(String title) => Padding(
+          padding: const EdgeInsets.only(top: Insets.md, bottom: Insets.xs),
+          child: Text(
+            title,
+            style: text.titleSmall?.copyWith(color: scheme.primary),
+          ),
+        );
+    final bool commentIsLink =
+        d.comment.startsWith('http://') || d.comment.startsWith('https://');
     return ListView(
       padding: Insets.page,
       children: <Widget>[
         if (t != null) ...<Widget>[
           LinearProgressIndicatorM3E(
-            value: t.percentDone.clamp(0, 1).toDouble(),
+            value: trBarValue(t),
             shape: (t.downloadRate > 0 || t.uploadRate > 0)
                 ? ProgressM3EShape.wavy
                 : ProgressM3EShape.flat,
             activeColor: trStatusColor(scheme, t),
             trackColor: scheme.surfaceContainerHighest,
           ),
-          const SizedBox(height: Insets.md),
-          if (t.hasError)
-            _KeyValue('Error', t.errorString),
-          _KeyValue('Status', t.statusLabel),
-          _KeyValue('Progress', '${(t.percentDone * 100).toStringAsFixed(1)}%'),
-          _KeyValue(
-            'Done',
-            '${trFmtBytes(t.doneBytes)} of ${trFmtBytes(t.sizeWhenDone)}',
-          ),
-          if (t.totalSize != t.sizeWhenDone)
-            _KeyValue('Total size', trFmtBytes(t.totalSize)),
-          _KeyValue('Down', trFmtRate(t.downloadRate)),
-          _KeyValue('Up', trFmtRate(t.uploadRate)),
-          _KeyValue('Uploaded', trFmtBytes(t.uploadedEver)),
-          _KeyValue('Ratio', t.ratio.toStringAsFixed(3)),
-          _KeyValue(
-            'Peers',
-            '${t.peersSendingToUs} sending, ${t.peersGettingFromUs} '
-                'receiving, ${t.peersConnected} connected',
-          ),
-          if (t.hasEta) _KeyValue('ETA', trFmtEta(t.eta)),
-          _KeyValue(
-            'Queue',
-            t.queuePosition < 0 ? 'Not queued' : '${t.queuePosition}',
-          ),
-          if (t.labels.isNotEmpty) _KeyValue('Labels', t.labels.join(', ')),
-          _KeyValue('Download folder', t.downloadDir),
-          if (t.addedDate > 0)
-            _KeyValue(
-              'Added',
-              DateTime.fromMillisecondsSinceEpoch(t.addedDate * 1000)
-                  .toLocal()
-                  .toString()
-                  .split('.')
-                  .first,
-            ),
+          header('Activity'),
+          _KeyValue('Have', trHaveLine(t, d)),
+          _KeyValue('Availability', trAvailability(t, d)),
+          _KeyValue('Uploaded', trUploadedLine(t, d)),
+          _KeyValue('Downloaded', trDownloadedLine(d)),
+          _KeyValue('State', t.stateString),
+          _KeyValue('Running time', trRunningTime(t, d, now: now)),
+          _KeyValue('Remaining', trRemaining(t)),
+          _KeyValue('Last activity', trLastActivity(t, now: now)),
+          if (t.errorString.isNotEmpty) _KeyValue('Error', t.errorString),
+          header('Details'),
+          _KeyValue('Size', trSizeLine(t, d)),
+          _KeyValue('Location', t.downloadDir),
           _KeyValue('Hash', t.hashString),
-        ],
-        _KeyValue('Files', '${detail.files.length}'),
-        _KeyValue('Private', detail.isPrivate ? 'Yes' : 'No'),
-        if (detail.pieceCount > 0)
+          _KeyValue('Privacy', trPrivacy(d)),
+          _KeyValue('Origin', trOrigin(d)),
+          if (t.addedDate > 0)
+            _KeyValue('Date added', trTimestamp(t.addedDate)),
           _KeyValue(
-            'Pieces',
-            '${detail.pieceCount} x ${trFmtBytes(detail.pieceSize)}',
+            'Comment',
+            d.comment.isEmpty ? 'None' : d.comment,
+            onTap: commentIsLink
+                ? () => launchUrl(
+                      Uri.parse(d.comment),
+                      mode: LaunchMode.externalApplication,
+                    )
+                : null,
           ),
-        if (detail.creator.isNotEmpty)
-          _KeyValue('Created by', detail.creator),
-        if (detail.comment.isNotEmpty) _KeyValue('Comment', detail.comment),
+          if (labelsSupported)
+            _KeyValue(
+              'Labels',
+              t.labels.isEmpty ? 'None' : t.labels.join(', '),
+            ),
+          _KeyValue(
+            'Magnet link',
+            d.magnetLink.isEmpty ? 'None' : d.magnetLink,
+            trailing: d.magnetLink.isEmpty
+                ? null
+                : IconButton(
+                    tooltip: 'Copy magnet link',
+                    icon: const Icon(Icons.copy, size: 18),
+                    onPressed: () async {
+                      await Clipboard.setData(
+                        ClipboardData(text: d.magnetLink),
+                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Magnet link copied')),
+                        );
+                      }
+                    },
+                  ),
+          ),
+        ],
       ],
     );
   }
@@ -173,25 +237,13 @@ class _FilesTab extends ConsumerStatefulWidget {
 class _FilesTabState extends ConsumerState<_FilesTab> {
   bool _busy = false;
 
-  Future<void> _setWanted(int index, bool wanted) async {
-    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+  Future<void> _write(Future<void> Function(TransmissionApi api) action) async {
     setState(() => _busy = true);
-    try {
-      final TransmissionApi api =
-          await ref.read(transmissionApiProvider(widget.instance).future);
-      await api.setFileWanted(
-        widget.hashString,
-        <int>[index],
-        wanted: wanted,
-      );
-      ref.invalidate(
-        transmissionDetailProvider((widget.instance, widget.hashString)),
-      );
-    } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text('Could not update: $e')));
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+    await runTransmissionAction(context, ref, widget.instance, action);
+    ref.invalidate(
+      transmissionDetailProvider((widget.instance, widget.hashString)),
+    );
+    if (mounted) setState(() => _busy = false);
   }
 
   @override
@@ -204,39 +256,56 @@ class _FilesTabState extends ConsumerState<_FilesTab> {
         message: 'Transmission has no file list for this torrent yet.',
       );
     }
-    return ListView.builder(
-      padding: Insets.page,
-      itemCount: files.length,
-      itemBuilder: (BuildContext context, int i) {
-        final TransmissionFile f = files[i];
-        return CheckboxListTile(
-          contentPadding: EdgeInsets.zero,
-          controlAffinity: ListTileControlAffinity.leading,
-          value: f.wanted,
-          // Unchecking tells Transmission to skip the file entirely.
-          onChanged: _busy
-              ? null
-              : (bool? v) => _setWanted(i, v ?? false),
-          title: Text(f.displayName),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              const SizedBox(height: Insets.xxs),
-              LinearProgressIndicatorM3E(
-                value: f.progress,
-                // A file's own progress never animates, so it stays flat.
-                shape: ProgressM3EShape.flat,
-                size: LinearProgressM3ESize.s,
+    final List<int> all = <int>[for (int i = 0; i < files.length; i++) i];
+    return Column(
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            const SizedBox(width: Insets.sm),
+            TextButton(
+              onPressed: _busy
+                  ? null
+                  : () => _write(
+                        (TransmissionApi api) => api.setFileWanted(
+                          widget.hashString,
+                          all,
+                          wanted: true,
+                        ),
+                      ),
+              child: const Text('Select all'),
+            ),
+            TextButton(
+              onPressed: _busy
+                  ? null
+                  : () => _write(
+                        (TransmissionApi api) => api.setFileWanted(
+                          widget.hashString,
+                          all,
+                          wanted: false,
+                        ),
+                      ),
+              child: const Text('Select none'),
+            ),
+          ],
+        ),
+        Expanded(
+          child: TransmissionFilesTree(
+            root: buildTransmissionFileTree(files),
+            busy: _busy,
+            onWanted: (List<int> indices, bool wanted) => _write(
+              (TransmissionApi api) => api.setFileWanted(
+                widget.hashString,
+                indices,
+                wanted: wanted,
               ),
-              const SizedBox(height: Insets.xxs),
-              Text(
-                '${(f.progress * 100).toStringAsFixed(0)}% - '
-                '${trFmtBytes(f.length)} - ${f.priorityLabel} priority',
-              ),
-            ],
+            ),
+            onPriority: (List<int> indices, TransmissionPriority p) => _write(
+              (TransmissionApi api) =>
+                  api.setFilePriority(widget.hashString, indices, p),
+            ),
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 }
@@ -248,35 +317,65 @@ class _PeersTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (detail.peers.isEmpty) {
-      return const EmptyView(
-        icon: Icons.people_outline,
-        title: 'No peers',
-        message: 'Nothing is connected right now.',
-      );
-    }
-    return ListView.builder(
+    final TextTheme text = Theme.of(context).textTheme;
+    return ListView(
       padding: Insets.page,
-      itemCount: detail.peers.length,
-      itemBuilder: (BuildContext context, int i) {
-        final TransmissionPeer p = detail.peers[i];
-        return ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: Icon(
-            p.isEncrypted ? Icons.lock_outline : Icons.lock_open_outlined,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Text('Peers (${detail.peers.length})', style: text.titleSmall),
+            const Spacer(),
+            IconButton(
+              tooltip: 'Peer flags',
+              icon: const Icon(Icons.help_outline),
+              onPressed: () => showTransmissionPeerFlagsSheet(context),
+            ),
+          ],
+        ),
+        if (detail.peers.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: Insets.lg),
+            child: Text('Nothing is connected right now.'),
           ),
-          title: Text(p.address),
-          subtitle: Text(
-            '${p.clientName.isEmpty ? 'Unknown client' : p.clientName} - '
-            '${(p.progress * 100).toStringAsFixed(0)}%',
+        for (final TransmissionPeer p in detail.peers)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              p.isEncrypted ? Icons.lock_outline : Icons.lock_open_outlined,
+            ),
+            title: Text('${p.address}:${p.port}'),
+            subtitle: Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    '${p.clientName.isEmpty ? 'Unknown client' : p.clientName}'
+                    ' - ${trPct(p.progress)}%',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(
+                  p.flagStr,
+                  style: const TextStyle(fontFamily: 'monospace'),
+                ),
+              ],
+            ),
+            trailing: Text(
+              '↓ ${trFmtRate(p.rateToClient)}\n↑ ${trFmtRate(p.rateToPeer)}',
+              textAlign: TextAlign.right,
+              style: text.bodySmall,
+            ),
           ),
-          trailing: Text(
-            '${trFmtRate(p.rateToClient)}\n${trFmtRate(p.rateToPeer)}',
-            textAlign: TextAlign.right,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        );
-      },
+        if (detail.webseeds.isNotEmpty) ...<Widget>[
+          const SizedBox(height: Insets.md),
+          Text('Web seeds', style: text.titleSmall),
+          for (final String url in detail.webseeds)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.public),
+              title: Text(url, maxLines: 2, overflow: TextOverflow.ellipsis),
+            ),
+        ],
+      ],
     );
   }
 }
@@ -288,6 +387,8 @@ class _TrackersTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final TextTheme text = Theme.of(context).textTheme;
     if (detail.trackers.isEmpty) {
       return const EmptyView(
         icon: Icons.dns_outlined,
@@ -295,55 +396,101 @@ class _TrackersTab extends StatelessWidget {
         message: 'This torrent announces to no trackers.',
       );
     }
-    return ListView.builder(
-      padding: Insets.page,
-      itemCount: detail.trackers.length,
-      itemBuilder: (BuildContext context, int i) {
-        final TransmissionTracker tr = detail.trackers[i];
-        return ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: Icon(
-            tr.lastAnnounceSucceeded
-                ? Icons.check_circle_outline
-                : Icons.dns_outlined,
-          ),
-          title: Text(tr.host.isEmpty ? tr.announce : tr.host, maxLines: 2),
-          subtitle: Text(
-            // Counts are -1 until an announce has actually landed.
-            'Tier ${tr.tier} - seeds ${trFmtPeerCount(tr.seederCount)}, '
-            'peers ${trFmtPeerCount(tr.leecherCount)}'
-            '${tr.lastAnnounceResult.isEmpty ? '' : ' - '
-                '${tr.lastAnnounceResult}'}',
+    final int now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final List<Widget> rows = <Widget>[];
+    int? tier;
+    for (final TransmissionTracker tr in detail.trackers) {
+      if (tr.tier != tier) {
+        tier = tr.tier;
+        rows.add(
+          Padding(
+            padding: const EdgeInsets.only(top: Insets.md, bottom: Insets.xs),
+            // Transmission counts tiers from zero; the web UI shows them
+            // from one.
+            child: Text(
+              'Tier ${tier + 1}',
+              style: text.titleSmall?.copyWith(color: scheme.primary),
+            ),
           ),
         );
-      },
-    );
+      }
+      final (String announceLabel, String announceValue) = trLastAnnounce(tr);
+      final (String scrapeLabel, String scrapeValue) = trLastScrape(tr);
+      rows.add(
+        Card(
+          margin: const EdgeInsets.only(bottom: Insets.sm),
+          child: Padding(
+            padding: const EdgeInsets.all(Insets.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  tr.sitename.isNotEmpty
+                      ? tr.sitename
+                      : (tr.host.isEmpty ? tr.announce : tr.host),
+                  style: text.titleSmall,
+                ),
+                Text(
+                  tr.announce,
+                  style:
+                      text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                ),
+                const SizedBox(height: Insets.xs),
+                Text(trAnnounceState(tr, now: now)),
+                Text('$announceLabel: $announceValue'),
+                Text('$scrapeLabel: $scrapeValue'),
+                Text(
+                  'Seeders ${trFmtPeerCount(tr.seederCount)}, '
+                  'leechers ${trFmtPeerCount(tr.leecherCount)}, '
+                  'downloads ${trFmtPeerCount(tr.downloadCount)}',
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return ListView(padding: Insets.page, children: rows);
   }
 }
 
 class _KeyValue extends StatelessWidget {
-  const _KeyValue(this.label, this.value);
+  const _KeyValue(this.label, this.value, {this.onTap, this.trailing});
 
   final String label;
   final String value;
+  final VoidCallback? onTap;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: Insets.xs),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           SizedBox(
-            width: 120,
+            width: 110,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
-          Expanded(child: Text(value)),
+          Expanded(
+            child: InkWell(
+              onTap: onTap,
+              child: Text(
+                value,
+                style: onTap == null
+                    ? null
+                    : TextStyle(color: theme.colorScheme.primary),
+              ),
+            ),
+          ),
+          if (trailing != null) trailing!,
         ],
       ),
     );
