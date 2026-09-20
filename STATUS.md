@@ -1,6 +1,6 @@
 # Atrium - Status
 
-> Snapshot of what genuinely works and what is left, as of 2026-08-23.
+> Snapshot of what genuinely works and what is left, as of 2026-09-20.
 > Atrium is published on F-Droid and on the GitHub releases page. It is
 > still in early development and every module is work in progress; nothing
 > here is a release promise.
@@ -70,6 +70,13 @@ Atrium is a **controller** app. Video playback was removed by design
 - **Seerr** (Jellyseerr / Overseerr): discover (trending/upcoming/genres),
   search, item detail with request submission (profile/folder/server
   selection), requests management (approve/decline/delete/retry)
+- **Ombi** (beta, added 2026-09-19, live-verified against 4.53): requests
+  for movies, TV and, where Lidarr is set up, music, filtered as Ombi's own
+  Requests page filters them, with approve / deny (with a reason) / delete;
+  search and a Discover tab (popular and upcoming movies, popular and
+  trending TV) whose request sheet reads a title's state before offering to
+  request it; Ombi rows on the dashboard's Requests widget. Every state is
+  worded the way Ombi's own pages word it
 - **Tautulli**: activity (10s poll) with backdrop session cards and a
   detail sheet (codecs, decisions, bandwidth, terminate with inline
   errors), history, 30-day stats, users - restyled to the expressive
@@ -129,16 +136,26 @@ Atrium is a **controller** app. Video playback was removed by design
   pause and global bandwidth caps, add by magnet / .torrent URL / file, a
   detail screen with files, trackers and peers, plus dashboard widget and
   Activity feed integration
-- **Transmission** (live-verified against 4.1.3, RPC 19): RPC client that rides
-  the shared Dio and handles the CSRF-token handshake (409 plus a rotating
-  session id) transparently, with optional HTTP Basic. Torrent list with
-  start / stop / start-now / remove (optionally with data), verify, reannounce
-  and queue moves; status and label filter chips built from the list itself;
-  nine sort fields; global limits with their separate enabled flags plus turtle
-  mode; add by magnet / .torrent URL / file, reporting duplicates as such; a
-  detail screen with files (wanted toggling), peers and trackers; dashboard
-  widget and Activity feed integration. The add, reannounce and remove paths
-  were exercised against the live daemon
+- **Transmission** (live-verified against 4.1.3, RPC 19; out of beta since
+  2026-09-20, when it was brought to parity with Transmission's own web UI):
+  RPC client that rides the shared Dio and handles the CSRF-token handshake
+  (409 plus a rotating session id) transparently, with optional HTTP Basic.
+  Torrent list with the web UI's nine filters (Active, Downloading, Seeding,
+  Paused, Finished, Error, Private, Public), tracker and label chips, search,
+  ten sort fields, compact rows, long-press selection with bulk actions, pause
+  all / start all, and per-torrent resume / resume now / pause / verify /
+  reannounce / set location / rename / edit labels / copy magnet link / queue
+  moves / remove / trash; a detail screen whose Info tab carries every line the
+  web UI's inspector shows, a Files tab as a folder tree with per-folder
+  wanted and priority, Peers with the flag letters and their legend plus web
+  seeds, and Trackers grouped by tier with announce and scrape state; a
+  Settings tab mirroring the web UI's Torrents / Speed / Peers / Network
+  preferences (each change written on its own, then read back) with the
+  session and all-time statistics, a per-protocol port test and blocklist
+  update; add by magnet / .torrent URL / file with the daemon's folder
+  prefilled and its free space shown; dashboard widget and Activity feed
+  integration. Every action and every setting was exercised against the live
+  daemon
 
 - **rTorrent** (live-verified against 0.16.17): the one client that speaks
   **XML-RPC** rather than JSON - a hand-rolled codec builds the `methodCall`
