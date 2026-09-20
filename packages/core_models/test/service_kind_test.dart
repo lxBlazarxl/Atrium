@@ -34,6 +34,7 @@ void main() {
         'navidrome',
         'gluetun',
         'ombi',
+        'myspeed',
       ],
     );
   });
@@ -46,6 +47,16 @@ void main() {
     expect(ServiceKind.ombi.authStyle, AuthStyle.apiKey);
     expect(ServiceKind.ombi.role, ServiceRole.requests);
     expect(ServiceKind.ombi.acceptsTorrents, isFalse);
+  });
+
+  test('MySpeed is registered as a beta no-auth analytics service', () {
+    expect(ServiceKind.myspeed.displayName, 'MySpeed');
+    expect(ServiceKind.myspeed.tagline, 'Internet speed');
+    expect(ServiceKind.myspeed.isBeta, isTrue);
+    expect(ServiceKind.myspeed.defaultPort, 5216);
+    expect(ServiceKind.myspeed.authStyle, AuthStyle.none);
+    expect(ServiceKind.myspeed.role, ServiceRole.analytics);
+    expect(ServiceKind.myspeed.acceptsTorrents, isFalse);
   });
 
   test('Lidarr is registered as apiKey automation service', () {
@@ -92,6 +103,7 @@ void main() {
     expect(ServiceKind.tracearr.isBeta, isFalse);
     expect(ServiceKind.unraid.isBeta, isTrue);
     expect(ServiceKind.navidrome.isBeta, isTrue);
+    expect(ServiceKind.myspeed.isBeta, isTrue);
   });
 
   test('Navidrome is registered as userPass mediaServer service', () {

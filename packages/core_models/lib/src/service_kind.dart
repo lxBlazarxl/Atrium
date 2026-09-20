@@ -29,6 +29,7 @@ enum ServiceKind {
   navidrome,
   gluetun,
   ombi,
+  myspeed,
 }
 
 /// Static metadata about a [ServiceKind] - display name, default port, the
@@ -63,6 +64,7 @@ extension ServiceKindX on ServiceKind {
         ServiceKind.gluetun => 'Gluetun',
         ServiceKind.navidrome => 'Navidrome',
         ServiceKind.ombi => 'Ombi',
+        ServiceKind.myspeed => 'MySpeed',
       };
 
   /// One-line role description.
@@ -92,6 +94,7 @@ extension ServiceKindX on ServiceKind {
         ServiceKind.gluetun => 'VPN client',
         ServiceKind.navidrome => 'Music server',
         ServiceKind.ombi => 'Requests',
+        ServiceKind.myspeed => 'Internet speed',
       };
 
   /// Whether this service's integration is still in beta. Surfaced as a
@@ -104,7 +107,8 @@ extension ServiceKindX on ServiceKind {
         ServiceKind.unraid ||
         ServiceKind.gluetun ||
         ServiceKind.navidrome ||
-        ServiceKind.ombi =>
+        ServiceKind.ombi ||
+        ServiceKind.myspeed =>
           true,
         _ => false,
       };
@@ -143,6 +147,7 @@ extension ServiceKindX on ServiceKind {
         // The linuxserver image, which most people run. Ombi's own default
         // is 5000.
         ServiceKind.ombi => 3579,
+        ServiceKind.myspeed => 5216,
       };
 
   /// What auth flow the service uses by default. Some services (Jellyfin) can
@@ -179,7 +184,7 @@ extension ServiceKindX on ServiceKind {
         ServiceKind.glances => AuthStyle.none,
         ServiceKind.speedtestTracker => AuthStyle.bearerToken,
         ServiceKind.beszel => AuthStyle.userPass,
-        ServiceKind.dashdot => AuthStyle.none,
+        ServiceKind.dashdot || ServiceKind.myspeed => AuthStyle.none,
       };
 
   /// Broad role of the service in the stack - used for grouping in the
@@ -211,6 +216,7 @@ extension ServiceKindX on ServiceKind {
         ServiceKind.dashdot => ServiceRole.analytics,
         ServiceKind.unraid => ServiceRole.analytics,
         ServiceKind.gluetun => ServiceRole.analytics,
+        ServiceKind.myspeed => ServiceRole.analytics,
       };
 
   /// Whether this service can be handed a torrent - a magnet URI, a link to a
