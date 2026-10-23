@@ -30,7 +30,14 @@ This document summarizes the changes and commits created to overhaul the instanc
    - Added `ServiceIcon` widget in `packages/core_ui` to deduplicate asset-icon loading with fallback across the application.
    - Added `ServiceKind.sortedValues` in `packages/core_models` to provide a canonical display-name-sorted list of services.
 
-4. **Router Configuration ([`router.dart`](file:///home/blazar/Projects/Atrium/app/lib/src/router.dart), [`routes.dart`](file:///home/blazar/Projects/Atrium/packages/core_router/lib/src/routes.dart))**:
+4. **Responsive & Accessibility Hardening ([`service_grid_screen.dart`](file:///home/blazar/Projects/Atrium/app/lib/src/screens/service_grid_screen.dart), [`instance_form_screen.dart`](file:///home/blazar/Projects/Atrium/app/lib/src/screens/instance_form_screen.dart))**:
+   - Dynamic `childAspectRatio` inversely proportional to accessibility font scaling (`MediaQuery.textScalerOf(context)`) and viewport width, preventing vertical grid overflows on small displays (320dp/360dp) and high text scale (≥ 1.3x).
+   - In `_ServiceGridCard`, icon containers are wrapped in `Flexible` + `FittedBox` with compact vertical padding.
+   - In `_FormSectionCard`, section titles are wrapped in `Expanded` with `TextOverflow.ellipsis`, and trailing widgets are wrapped in `Flexible`.
+   - Port hints shortened to `Port: <number>` with `maxLines: 1` and `TextOverflow.ellipsis`.
+   - Comprehensive widget test coverage for 320x600dp viewports at 1.3x text scale.
+
+5. **Router Configuration ([`router.dart`](file:///home/blazar/Projects/Atrium/app/lib/src/router.dart), [`routes.dart`](file:///home/blazar/Projects/Atrium/packages/core_router/lib/src/routes.dart))**:
    - Added `AtriumRoutes.addInstanceForm` (`form/:kind`).
    - Wired `AtriumRoutes.addInstance` to `ServiceGridScreen`.
    - Handled invalid/unknown route parameter kinds explicitly with an `EmptyView` error screen instead of silently defaulting to Sonarr.
