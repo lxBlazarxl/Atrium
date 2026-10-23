@@ -15,21 +15,30 @@ class ServiceGridScreen extends StatefulWidget {
   State<ServiceGridScreen> createState() => _ServiceGridScreenState();
 }
 
-class _ServiceGridScreenState extends State<ServiceGridScreen> {
+class _ServiceGridScreenState extends State<ServiceGridScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
+  late final TabController _categoryController;
   String _searchQuery = '';
-  ServiceRole? _selectedRole;
 
   @override
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
+    // One tab for "All", then one per role; index 0 maps to no role filter,
+    // mirroring the tab strip used on the Emby and Jellyfin homes. The shared
+    // controller keeps the strip and the swipeable grid pages in sync.
+    _categoryController = TabController(
+      length: ServiceRole.values.length + 1,
+      vsync: this,
+    );
   }
 
   @override
   void dispose() {
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _categoryController.dispose();
     super.dispose();
   }
 
@@ -39,9 +48,11 @@ class _ServiceGridScreenState extends State<ServiceGridScreen> {
     });
   }
 
-  List<ServiceKind> _filteredServices() {
+  /// Services for one tab page: the page's role, intersected with the search
+  /// query typed in the app bar.
+  List<ServiceKind> _filteredServices(ServiceRole? pageRole) {
     return ServiceKind.sortedValues.where((ServiceKind kind) {
-      if (_selectedRole != null && kind.role != _selectedRole) {
+      if (pageRole != null && kind.role != pageRole) {
         return false;
       }
       if (_searchQuery.isEmpty) {
@@ -72,17 +83,6 @@ class _ServiceGridScreenState extends State<ServiceGridScreen> {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme cs = theme.colorScheme;
-    final List<ServiceKind> services = _filteredServices();
-    final double width = MediaQuery.sizeOf(context).width;
-    final double textScale = MediaQuery.textScalerOf(context).scale(1.0);
-    final int crossAxisCount = width > 900
-        ? 4
-        : width > 600
-            ? 3
-            : 2;
-    final double baseRatio = width < 360 ? 0.82 : 0.88;
-    final double childAspectRatio =
-        (baseRatio / textScale.clamp(1.0, 2.0)).clamp(0.55, 1.2);
 
     return Scaffold(
       appBar: AppBar(
@@ -117,103 +117,111 @@ class _ServiceGridScreenState extends State<ServiceGridScreen> {
       ),
       body: Column(
         children: <Widget>[
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(
-              horizontal: Insets.lg,
-              vertical: Insets.sm,
-            ),
-            child: Row(
-              children: <Widget>[
-                FilterChip(
-                  key: const Key('category_chip_all'),
-                  label: const Text('All'),
-                  selected: _selectedRole == null,
-                  onSelected: (bool selected) {
-                    if (selected) {
-                      setState(() => _selectedRole = null);
-                    }
-                  },
+          TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            controller: _categoryController,
+            tabs: <Widget>[
+              const Tab(
+                key: Key('category_tab_all'),
+                text: 'All',
+              ),
+              for (final ServiceRole role in ServiceRole.values)
+                Tab(
+                  key: Key('category_tab_${role.name}'),
+                  text: ServiceVisuals.roleLabel(role),
                 ),
-                for (final ServiceRole role in ServiceRole.values) ...<Widget>[
-                  const SizedBox(width: Insets.sm),
-                  FilterChip(
-                    key: Key('category_chip_${role.name}'),
-                    label: Text(ServiceVisuals.roleLabel(role)),
-                    selected: _selectedRole == role,
-                    onSelected: (bool selected) {
-                      setState(() {
-                        _selectedRole = selected ? role : null;
-                      });
-                    },
-                  ),
-                ],
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _categoryController,
+              children: <Widget>[
+                _buildGridPage(null),
+                for (final ServiceRole role in ServiceRole.values)
+                  _buildGridPage(role),
               ],
             ),
           ),
-          const Divider(height: 1),
-          Expanded(
-            child: services.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(Insets.xl),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          Icon(
-                            Icons.search_off_rounded,
-                            size: 48,
-                            color: cs.onSurfaceVariant,
-                          ),
-                          const SizedBox(height: Insets.md),
-                          Text(
-                            'No services found',
-                            style: theme.textTheme.titleMedium,
-                          ),
-                          const SizedBox(height: Insets.xs),
-                          Text(
-                            'Try a different search query or filter category.',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: cs.onSurfaceVariant,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: Insets.md),
-                          TextButton.icon(
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() {
-                                _searchQuery = '';
-                                _selectedRole = null;
-                              });
-                            },
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Reset filters'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : GridView.builder(
-                    padding: const EdgeInsets.all(Insets.lg),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: Insets.md,
-                      mainAxisSpacing: Insets.md,
-                      childAspectRatio: childAspectRatio,
-                    ),
-                    itemCount: services.length,
-                    itemBuilder: (BuildContext context, int index) {
-                      final ServiceKind kind = services[index];
-                      return _ServiceGridCard(
-                        kind: kind,
-                        onTap: () => _selectService(context, kind),
-                      );
-                    },
-                  ),
-          ),
         ],
       ),
+    );
+  }
+
+  /// One grid page of the [TabBarView]; role is null for the All page.
+  Widget _buildGridPage(ServiceRole? role) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme cs = theme.colorScheme;
+    final List<ServiceKind> services = _filteredServices(role);
+    final double width = MediaQuery.sizeOf(context).width;
+    final double textScale = MediaQuery.textScalerOf(context).scale(1.0);
+    final int crossAxisCount = width > 900
+        ? 4
+        : width > 600
+            ? 3
+            : 2;
+    final double baseRatio = width < 360 ? 0.82 : 0.88;
+    final double childAspectRatio =
+        (baseRatio / textScale.clamp(1.0, 2.0)).clamp(0.55, 1.2);
+
+    if (services.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(Insets.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(
+                Icons.search_off_rounded,
+                size: 48,
+                color: cs.onSurfaceVariant,
+              ),
+              const SizedBox(height: Insets.md),
+              Text(
+                'No services found',
+                style: theme.textTheme.titleMedium,
+              ),
+              const SizedBox(height: Insets.xs),
+              Text(
+                'Try a different search query or filter category.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: cs.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: Insets.md),
+              TextButton.icon(
+                onPressed: () {
+                  _searchController.clear();
+                  _categoryController.animateTo(0);
+                  setState(() {
+                    _searchQuery = '';
+                  });
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Reset filters'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return GridView.builder(
+      padding: const EdgeInsets.all(Insets.lg),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        crossAxisSpacing: Insets.md,
+        mainAxisSpacing: Insets.md,
+        childAspectRatio: childAspectRatio,
+      ),
+      itemCount: services.length,
+      itemBuilder: (BuildContext context, int index) {
+        final ServiceKind kind = services[index];
+        return _ServiceGridCard(
+          kind: kind,
+          onTap: () => _selectService(context, kind),
+        );
+      },
     );
   }
 }

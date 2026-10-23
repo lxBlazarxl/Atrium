@@ -43,7 +43,7 @@ void main() {
     );
   }
 
-  testWidgets('ServiceGridScreen renders search bar and category chips',
+  testWidgets('ServiceGridScreen renders search bar and category tabs',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1000, 1400);
     tester.view.devicePixelRatio = 1;
@@ -54,10 +54,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('service_search_bar')), findsOneWidget);
-    expect(find.byKey(const Key('category_chip_all')), findsOneWidget);
-    expect(find.byKey(const Key('category_chip_automation')), findsOneWidget);
-    expect(find.byKey(const Key('category_chip_mediaServer')), findsOneWidget);
-    expect(find.byKey(const Key('category_chip_downloader')), findsOneWidget);
+    expect(find.byKey(const Key('category_tab_all')), findsOneWidget);
+    expect(find.byKey(const Key('category_tab_automation')), findsOneWidget);
+    expect(find.byKey(const Key('category_tab_mediaServer')), findsOneWidget);
+    expect(find.byKey(const Key('category_tab_downloader')), findsOneWidget);
 
     // Initial state renders AdGuard Home card (first alphabetically)
     expect(
@@ -102,8 +102,8 @@ void main() {
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
-    // Tap Media chip
-    await tester.tap(find.byKey(const Key('category_chip_mediaServer')));
+    // Tap Media tab
+    await tester.tap(find.byKey(const Key('category_tab_mediaServer')));
     await tester.pumpAndSettle();
 
     // Media servers like Plex/Jellyfin should be visible, Sonarr (automation) should not
@@ -138,7 +138,7 @@ void main() {
     expect(find.text('AdGuard Home'), findsWidgets);
   });
 
-  testWidgets('Category chips are generated from all ServiceRole values',
+  testWidgets('Category tabs are generated from all ServiceRole values',
       (WidgetTester tester) async {
     tester.view.physicalSize = const Size(1000, 1400);
     tester.view.devicePixelRatio = 1;
@@ -150,10 +150,39 @@ void main() {
 
     for (final ServiceRole role in ServiceRole.values) {
       expect(
-        find.byKey(Key('category_chip_${role.name}')),
+        find.byKey(Key('category_tab_${role.name}')),
         findsOneWidget,
       );
     }
+  });
+
+  testWidgets('Swiping the grid pages moves to the next category tab',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1000, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+
+    await tester.drag(
+      find.byType(TabBarView),
+      const Offset(-600, 0),
+    );
+    await tester.pumpAndSettle();
+
+    final TabBar tabBar = tester.widget<TabBar>(find.byType(TabBar));
+    expect(tabBar.controller!.index, 1);
+    // Automation grid: Sonarr present, a media server is not.
+    expect(
+      find.byKey(const ValueKey<String>('service_card_sonarr')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('service_card_plex')),
+      findsNothing,
+    );
   });
 
   testWidgets('Unknown service parameter renders error screen',
