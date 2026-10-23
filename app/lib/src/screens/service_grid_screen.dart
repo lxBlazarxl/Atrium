@@ -74,11 +74,15 @@ class _ServiceGridScreenState extends State<ServiceGridScreen> {
     final ColorScheme cs = theme.colorScheme;
     final List<ServiceKind> services = _filteredServices();
     final double width = MediaQuery.sizeOf(context).width;
+    final double textScale = MediaQuery.textScalerOf(context).scale(1.0);
     final int crossAxisCount = width > 900
         ? 4
         : width > 600
             ? 3
             : 2;
+    final double baseRatio = width < 360 ? 0.82 : 0.88;
+    final double childAspectRatio =
+        (baseRatio / textScale.clamp(1.0, 2.0)).clamp(0.55, 1.2);
 
     return Scaffold(
       appBar: AppBar(
@@ -196,7 +200,7 @@ class _ServiceGridScreenState extends State<ServiceGridScreen> {
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: Insets.md,
                       mainAxisSpacing: Insets.md,
-                      childAspectRatio: 0.95,
+                      childAspectRatio: childAspectRatio,
                     ),
                     itemCount: services.length,
                     itemBuilder: (BuildContext context, int index) {
@@ -251,25 +255,32 @@ class _ServiceGridCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: Insets.sm,
-                  vertical: Insets.md,
+                  vertical: Insets.sm,
                 ),
                 child: Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
-                      Container(
-                        width: 58,
-                        height: 58,
-                        padding: const EdgeInsets.all(Insets.xs),
-                        decoration: BoxDecoration(
-                          color: accent.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(Radii.md),
-                        ),
-                        child: Center(
-                          child: ServiceIcon(kind: kind, size: 40),
+                      Flexible(
+                        child: Container(
+                          constraints: const BoxConstraints(
+                            maxWidth: 58,
+                            maxHeight: 58,
+                          ),
+                          padding: const EdgeInsets.all(Insets.xs),
+                          decoration: BoxDecoration(
+                            color: accent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(Radii.md),
+                          ),
+                          child: Center(
+                            child: FittedBox(
+                              child: ServiceIcon(kind: kind, size: 40),
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: Insets.sm),
+                      const SizedBox(height: Insets.xs),
                       Text(
                         kind.displayName,
                         style: theme.textTheme.titleMedium?.copyWith(
@@ -315,8 +326,8 @@ class _ServiceGridCard extends StatelessWidget {
               ),
               if (kind.isBeta)
                 const Positioned(
-                  top: Insets.sm,
-                  right: Insets.sm,
+                  top: Insets.xs,
+                  right: Insets.xs,
                   child: BetaBadge(),
                 ),
             ],

@@ -495,10 +495,12 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
                         borderRadius: BorderRadius.circular(Radii.sm),
                       ),
                       child: Text(
-                        'Default port: ${_kind.defaultPort}',
+                        'Port: ${_kind.defaultPort}',
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: cs.onSurfaceVariant,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     )
                   : null,
@@ -1016,15 +1018,20 @@ class _FormSectionCard extends StatelessWidget {
               children: <Widget>[
                 Icon(icon, size: 20, color: cs.primary),
                 const SizedBox(width: Insets.sm),
-                Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (trailing != null) ...<Widget>[
-                  const Spacer(),
-                  trailing!,
+                  const SizedBox(width: Insets.sm),
+                  Flexible(
+                    child: trailing!,
+                  ),
                 ],
               ],
             ),

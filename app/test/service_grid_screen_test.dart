@@ -210,4 +210,76 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets(
+      'ServiceGridScreen renders without overflow on narrow screen and high text scale',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(320, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MediaQuery(
+        data: const MediaQueryData(
+          size: Size(320, 600),
+          textScaler: TextScaler.linear(1.3),
+        ),
+        child: buildApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ServiceGridScreen), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'InstanceFormScreen renders without overflow on narrow screen and high text scale',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(320, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final GoRouter router = GoRouter(
+      initialLocation: '/add-instance/form/sonarr',
+      routes: <RouteBase>[
+        GoRoute(
+          path: '/add-instance/form/:kind',
+          builder: (BuildContext context, GoRouterState state) =>
+              const InstanceFormScreen(initialKind: ServiceKind.sonarr),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    FlutterErrorDetails? errorDetails;
+    final void Function(FlutterErrorDetails)? originalOnError =
+        FlutterError.onError;
+    FlutterError.onError = (FlutterErrorDetails details) {
+      errorDetails = details;
+    };
+    addTearDown(() {
+      FlutterError.onError = originalOnError;
+    });
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MediaQuery(
+          data: const MediaQueryData(
+            size: Size(320, 600),
+            textScaler: TextScaler.linear(1.3),
+          ),
+          child: MaterialApp.router(
+            routerConfig: router,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    FlutterError.onError = originalOnError;
+    expect(errorDetails, isNull);
+  });
 }
