@@ -1,0 +1,137 @@
+import 'package:atrium/src/screens/instance_form_screen.dart';
+import 'package:atrium/src/screens/service_grid_screen.dart';
+import 'package:core_models/core_models.dart';
+import 'package:core_router/core_router.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+
+void main() {
+  Widget buildApp({GoRouter? router}) {
+    final GoRouter r = router ??
+        GoRouter(
+          initialLocation: '/add-instance',
+          routes: <RouteBase>[
+            GoRoute(
+              path: '/add-instance',
+              name: AtriumRoutes.addInstanceName,
+              builder: (BuildContext context, GoRouterState state) =>
+                  const ServiceGridScreen(),
+              routes: <RouteBase>[
+                GoRoute(
+                  path: AtriumRoutes.addInstanceForm,
+                  name: AtriumRoutes.addInstanceFormName,
+                  builder: (BuildContext context, GoRouterState state) {
+                    final String? kindStr = state.pathParameters['kind'];
+                    final ServiceKind? kind = kindStr != null
+                        ? ServiceKind.values.asNameMap()[kindStr]
+                        : null;
+                    return InstanceFormScreen(initialKind: kind);
+                  },
+                ),
+              ],
+            ),
+          ],
+        );
+
+    return ProviderScope(
+      child: MaterialApp.router(
+        routerConfig: r,
+      ),
+    );
+  }
+
+  testWidgets('ServiceGridScreen renders search bar and category chips',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1000, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('service_search_bar')), findsOneWidget);
+    expect(find.byKey(const Key('category_chip_all')), findsOneWidget);
+    expect(find.byKey(const Key('category_chip_automation')), findsOneWidget);
+    expect(find.byKey(const Key('category_chip_mediaServer')), findsOneWidget);
+    expect(find.byKey(const Key('category_chip_downloader')), findsOneWidget);
+
+    // Initial state renders Sonarr card
+    expect(
+      find.byKey(const ValueKey<String>('service_card_sonarr')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('ServiceGridScreen search filter works',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1000, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('service_search_bar')),
+      'qbittorrent',
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey<String>('service_card_qbittorrent')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('service_card_sonarr')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('ServiceGridScreen category filter works',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1000, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+
+    // Tap Media chip
+    await tester.tap(find.byKey(const Key('category_chip_mediaServer')));
+    await tester.pumpAndSettle();
+
+    // Media servers like Plex/Jellyfin should be visible, Sonarr (automation) should not
+    expect(
+      find.byKey(const ValueKey<String>('service_card_plex')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('service_card_sonarr')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('Tapping service card navigates to form with pre-selected kind',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1000, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey<String>('service_card_sonarr')));
+    await tester.pumpAndSettle();
+
+    // Should now be on InstanceFormScreen with Sonarr preselected
+    expect(find.byType(InstanceFormScreen), findsOneWidget);
+    expect(find.textContaining('TV shows'), findsWidgets);
+    expect(find.text('Sonarr'), findsWidgets);
+  });
+}

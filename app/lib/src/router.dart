@@ -11,6 +11,7 @@ import 'screens/instance_form_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/profiles_screen.dart';
 import 'screens/service_detail_screen.dart';
+import 'screens/service_grid_screen.dart';
 import 'screens/settings_screen.dart';
 
 /// The root navigator. Public so code living above the router - the torrent
@@ -72,7 +73,21 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
                     parentNavigatorKey: _rootNavigatorKey,
                     name: AtriumRoutes.addInstanceName,
                     builder: (BuildContext context, GoRouterState state) =>
-                        const InstanceFormScreen(),
+                        const ServiceGridScreen(),
+                    routes: <RouteBase>[
+                      GoRoute(
+                        path: AtriumRoutes.addInstanceForm,
+                        parentNavigatorKey: _rootNavigatorKey,
+                        name: AtriumRoutes.addInstanceFormName,
+                        builder: (BuildContext context, GoRouterState state) {
+                          final String? kindStr = state.pathParameters['kind'];
+                          final ServiceKind? kind = kindStr != null
+                              ? ServiceKind.values.asNameMap()[kindStr]
+                              : null;
+                          return InstanceFormScreen(initialKind: kind);
+                        },
+                      ),
+                    ],
                   ),
                   GoRoute(
                     path: AtriumRoutes.editInstance,
