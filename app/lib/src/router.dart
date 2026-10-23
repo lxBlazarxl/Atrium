@@ -1,6 +1,7 @@
 import 'package:core_router/core_router.dart';
 import 'package:core_profile/core_profile.dart';
 import 'package:core_models/core_models.dart';
+import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -84,6 +85,25 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
                           final ServiceKind? kind = kindStr != null
                               ? ServiceKind.values.asNameMap()[kindStr]
                               : null;
+                          if (kind == null) {
+                            return Scaffold(
+                              appBar: AppBar(
+                                title: const Text('Unknown service'),
+                              ),
+                              body: EmptyView(
+                                icon: Icons.error_outline,
+                                title: 'Unknown service',
+                                message:
+                                    'No service matching "$kindStr" was found.',
+                                action: FilledButton(
+                                  onPressed: () => context.goNamed(
+                                    AtriumRoutes.addInstanceName,
+                                  ),
+                                  child: const Text('Select a service'),
+                                ),
+                              ),
+                            );
+                          }
                           return InstanceFormScreen(initialKind: kind);
                         },
                       ),

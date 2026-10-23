@@ -282,14 +282,10 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
     final Instance instance = _buildInstance(id);
     await controller.upsertInstance(profile.id, instance);
     if (mounted) {
-      if (_isEdit) {
-        context.pop();
+      if (context.canPop()) {
+        context.pop(true);
       } else {
-        try {
-          context.goNamed(AtriumRoutes.dashboardName);
-        } catch (_) {
-          context.pop();
-        }
+        context.goNamed(AtriumRoutes.dashboardName);
       }
     }
   }
@@ -425,7 +421,7 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
                             borderRadius: BorderRadius.circular(Radii.md),
                           ),
                           child: Center(
-                            child: _buildServiceIcon(_kind, size: 36),
+                            child: ServiceIcon(kind: _kind, size: 36),
                           ),
                         ),
                         const SizedBox(width: Insets.md),
@@ -462,38 +458,31 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
                         ),
                       ],
                     ),
-                    if (!_isEdit) ...<Widget>[
-                      const SizedBox(height: Insets.md),
-                      DropdownMenu<ServiceKind>(
-                        key: ValueKey<ServiceKind>(_kind),
-                        initialSelection: _kind,
-                        label: const Text('Service'),
-                        expandedInsets: EdgeInsets.zero,
-                        menuHeight: 350,
-                        leadingIcon: UnconstrainedBox(
-                          child: _buildServiceIcon(_kind, size: 24),
-                        ),
-                        dropdownMenuEntries: <DropdownMenuEntry<ServiceKind>>[
-                          for (final ServiceKind k in ServiceKind.values.toList()
-                            ..sort(
-                              (ServiceKind a, ServiceKind b) => a.displayName
-                                  .toLowerCase()
-                                  .compareTo(b.displayName.toLowerCase()),
-                            ))
-                            DropdownMenuEntry<ServiceKind>(
-                              value: k,
-                              label: k.isBeta
-                                  ? '${k.displayName} - ${k.tagline} (Beta)'
-                                  : '${k.displayName} - ${k.tagline}',
-                              leadingIcon: _buildServiceIcon(k),
-                            ),
-                        ],
-                        onSelected: (ServiceKind? k) => setState(() {
-                          _kind = k ?? _kind;
-                          _connectionResults = <String, ConnectionTestResult>{};
-                        }),
+                    const SizedBox(height: Insets.md),
+                    DropdownMenu<ServiceKind>(
+                      key: ValueKey<ServiceKind>(_kind),
+                      initialSelection: _kind,
+                      label: const Text('Service'),
+                      expandedInsets: EdgeInsets.zero,
+                      menuHeight: 350,
+                      leadingIcon: UnconstrainedBox(
+                        child: ServiceIcon(kind: _kind, size: 24),
                       ),
-                    ],
+                      dropdownMenuEntries: <DropdownMenuEntry<ServiceKind>>[
+                        for (final ServiceKind k in ServiceKind.sortedValues)
+                          DropdownMenuEntry<ServiceKind>(
+                            value: k,
+                            label: k.isBeta
+                                ? '${k.displayName} - ${k.tagline} (Beta)'
+                                : '${k.displayName} - ${k.tagline}',
+                            leadingIcon: ServiceIcon(kind: k, size: 24),
+                          ),
+                      ],
+                      onSelected: (ServiceKind? k) => setState(() {
+                        _kind = k ?? _kind;
+                        _connectionResults = <String, ConnectionTestResult>{};
+                      }),
+                    ),
                   ],
                 ),
               ),
@@ -883,9 +872,16 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
         ];
       case AuthStyle.userPass:
       case AuthStyle.cookieLogin:
+        // Transmission's RPC auth is optional and off in a default install,
+        // and an AdGuard Home set up without a user answers anyone, so
+        // *neither* field may be required there - demanding credentials would
+        // lock users out of a perfectly reachable server.
         final bool authOptional = _kind == ServiceKind.transmission ||
             _kind == ServiceKind.rtorrent ||
             _kind == ServiceKind.adguardHome;
+        // Emby/Jellyfin accounts may legitimately have no password; every other
+        // username/password service (e.g. qBittorrent) requires one, where an
+        // empty submission guarantees a failed login.
         final bool passwordOptional = authOptional ||
             _kind == ServiceKind.emby ||
             _kind == ServiceKind.jellyfin;
@@ -921,12 +917,16 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
           passwordField,
         ];
 
+        // Deluge's Web UI has no username at all - only a password - so a
+        // username field here would be a dead input that fails validation.
         if (_kind == ServiceKind.deluge) {
           return <Widget>[passwordField];
         }
         if (_kind != ServiceKind.qbittorrent) {
           return userPass;
         }
+        // qBittorrent 5.2+ accepts either username/password or a stateless
+        // API key, so offer both.
         return <Widget>[
           SegmentedButton<bool>(
             segments: const <ButtonSegment<bool>>[
@@ -1004,21 +1004,6 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
     }
     final Uri? uri = Uri.tryParse(raw.trim());
     return uri != null && uri.hasScheme && uri.host.isNotEmpty;
-  }
-
-  Widget _buildServiceIcon(ServiceKind kind, {double size = 24}) {
-    return Image.asset(
-      'assets/service_icons/${kind.name}.png',
-      width: size,
-      height: size,
-      errorBuilder:
-          (BuildContext context, Object error, StackTrace? stackTrace) =>
-              Icon(
-        ServiceVisuals.icon(kind),
-        size: size,
-        color: ServiceVisuals.accent(kind),
-      ),
-    );
   }
 }
 

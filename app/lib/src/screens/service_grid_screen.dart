@@ -40,14 +40,7 @@ class _ServiceGridScreenState extends State<ServiceGridScreen> {
   }
 
   List<ServiceKind> _filteredServices() {
-    final List<ServiceKind> all = ServiceKind.values.toList()
-      ..sort(
-        (ServiceKind a, ServiceKind b) => a.displayName
-            .toLowerCase()
-            .compareTo(b.displayName.toLowerCase()),
-      );
-
-    return all.where((ServiceKind kind) {
+    return ServiceKind.sortedValues.where((ServiceKind kind) {
       if (_selectedRole != null && kind.role != _selectedRole) {
         return false;
       }
@@ -65,29 +58,14 @@ class _ServiceGridScreenState extends State<ServiceGridScreen> {
     }).toList(growable: false);
   }
 
-  void _selectService(BuildContext context, ServiceKind kind) {
-    context.pushNamed(
+  Future<void> _selectService(BuildContext context, ServiceKind kind) async {
+    final Object? result = await context.pushNamed(
       AtriumRoutes.addInstanceFormName,
       pathParameters: <String, String>{'kind': kind.name},
     );
-  }
-
-  Widget _buildServiceIcon(ServiceKind kind, {double size = 32}) {
-    return Image.asset(
-      'assets/service_icons/${kind.name}.png',
-      width: size,
-      height: size,
-      errorBuilder: (
-        BuildContext context,
-        Object error,
-        StackTrace? stackTrace,
-      ) =>
-          Icon(
-        ServiceVisuals.icon(kind),
-        size: size,
-        color: ServiceVisuals.accent(kind),
-      ),
-    );
+    if (result == true && context.mounted && context.canPop()) {
+      context.pop();
+    }
   }
 
   @override
@@ -154,61 +132,19 @@ class _ServiceGridScreenState extends State<ServiceGridScreen> {
                     }
                   },
                 ),
-                const SizedBox(width: Insets.sm),
-                FilterChip(
-                  key: const Key('category_chip_automation'),
-                  label: const Text('Automation'),
-                  selected: _selectedRole == ServiceRole.automation,
-                  onSelected: (bool selected) {
-                    setState(() {
-                      _selectedRole = selected ? ServiceRole.automation : null;
-                    });
-                  },
-                ),
-                const SizedBox(width: Insets.sm),
-                FilterChip(
-                  key: const Key('category_chip_mediaServer'),
-                  label: const Text('Media'),
-                  selected: _selectedRole == ServiceRole.mediaServer,
-                  onSelected: (bool selected) {
-                    setState(() {
-                      _selectedRole = selected ? ServiceRole.mediaServer : null;
-                    });
-                  },
-                ),
-                const SizedBox(width: Insets.sm),
-                FilterChip(
-                  key: const Key('category_chip_downloader'),
-                  label: const Text('Downloads'),
-                  selected: _selectedRole == ServiceRole.downloader,
-                  onSelected: (bool selected) {
-                    setState(() {
-                      _selectedRole = selected ? ServiceRole.downloader : null;
-                    });
-                  },
-                ),
-                const SizedBox(width: Insets.sm),
-                FilterChip(
-                  key: const Key('category_chip_requests'),
-                  label: const Text('Requests'),
-                  selected: _selectedRole == ServiceRole.requests,
-                  onSelected: (bool selected) {
-                    setState(() {
-                      _selectedRole = selected ? ServiceRole.requests : null;
-                    });
-                  },
-                ),
-                const SizedBox(width: Insets.sm),
-                FilterChip(
-                  key: const Key('category_chip_analytics'),
-                  label: const Text('Analytics'),
-                  selected: _selectedRole == ServiceRole.analytics,
-                  onSelected: (bool selected) {
-                    setState(() {
-                      _selectedRole = selected ? ServiceRole.analytics : null;
-                    });
-                  },
-                ),
+                for (final ServiceRole role in ServiceRole.values) ...<Widget>[
+                  const SizedBox(width: Insets.sm),
+                  FilterChip(
+                    key: Key('category_chip_${role.name}'),
+                    label: Text(ServiceVisuals.roleLabel(role)),
+                    selected: _selectedRole == role,
+                    onSelected: (bool selected) {
+                      setState(() {
+                        _selectedRole = selected ? role : null;
+                      });
+                    },
+                  ),
+                ],
               ],
             ),
           ),
@@ -268,7 +204,6 @@ class _ServiceGridScreenState extends State<ServiceGridScreen> {
                       final ServiceKind kind = services[index];
                       return _ServiceGridCard(
                         kind: kind,
-                        icon: _buildServiceIcon(kind),
                         onTap: () => _selectService(context, kind),
                       );
                     },
@@ -283,12 +218,10 @@ class _ServiceGridScreenState extends State<ServiceGridScreen> {
 class _ServiceGridCard extends StatelessWidget {
   const _ServiceGridCard({
     required this.kind,
-    required this.icon,
     required this.onTap,
   });
 
   final ServiceKind kind;
-  final Widget icon;
   final VoidCallback onTap;
 
   @override
@@ -297,79 +230,86 @@ class _ServiceGridCard extends StatelessWidget {
     final ColorScheme cs = theme.colorScheme;
     final Color accent = ServiceVisuals.accent(kind);
 
-    return Card(
-      key: ValueKey<String>('service_card_${kind.name}'),
-      elevation: 0,
-      color: cs.surfaceContainerLow,
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(Radii.md),
-        side: BorderSide(
-          color: cs.outlineVariant.withValues(alpha: 0.5),
+    return Semantics(
+      button: true,
+      label: 'Add ${kind.displayName}',
+      child: Card(
+        key: ValueKey<String>('service_card_${kind.name}'),
+        elevation: 0,
+        color: cs.surfaceContainerLow,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Radii.md),
+          side: BorderSide(
+            color: cs.outlineVariant.withValues(alpha: 0.5),
+          ),
         ),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(Insets.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Container(
-                    width: 44,
-                    height: 44,
-                    padding: const EdgeInsets.all(Insets.xs),
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(Radii.sm),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(Radii.md),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(Insets.md),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Container(
+                      width: 44,
+                      height: 44,
+                      padding: const EdgeInsets.all(Insets.xs),
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(Radii.sm),
+                      ),
+                      child: Center(
+                        child: ServiceIcon(kind: kind, size: 28),
+                      ),
                     ),
-                    child: Center(child: icon),
+                    const Spacer(),
+                    if (kind.isBeta) const BetaBadge(),
+                  ],
+                ),
+                const Spacer(),
+                Text(
+                  kind.displayName,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
-                  const Spacer(),
-                  if (kind.isBeta) const BetaBadge(),
-                ],
-              ),
-              const Spacer(),
-              Text(
-                kind.displayName,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: Insets.xxs),
-              Text(
-                kind.tagline,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: Insets.xs),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 6,
-                  vertical: 2,
-                ),
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerHighest.withValues(alpha: 0.7),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  ServiceVisuals.roleLabel(kind.role),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontSize: 10,
+                const SizedBox(height: Insets.xxs),
+                Text(
+                  kind.tagline,
+                  style: theme.textTheme.bodySmall?.copyWith(
                     color: cs.onSurfaceVariant,
-                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: Insets.xs),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: cs.surfaceContainerHighest.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    ServiceVisuals.roleLabel(kind.role),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      fontSize: 10,
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

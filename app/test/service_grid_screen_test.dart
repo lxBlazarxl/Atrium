@@ -34,6 +34,7 @@ void main() {
             ),
           ],
         );
+    addTearDown(r.dispose);
 
     return ProviderScope(
       child: MaterialApp.router(
@@ -133,5 +134,78 @@ void main() {
     expect(find.byType(InstanceFormScreen), findsOneWidget);
     expect(find.textContaining('TV shows'), findsWidgets);
     expect(find.text('Sonarr'), findsWidgets);
+  });
+
+  testWidgets('Category chips are generated from all ServiceRole values',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1000, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+
+    for (final ServiceRole role in ServiceRole.values) {
+      expect(
+        find.byKey(Key('category_chip_${role.name}')),
+        findsOneWidget,
+      );
+    }
+  });
+
+  testWidgets('Unknown service parameter renders error screen',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(1000, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final GoRouter router = GoRouter(
+      initialLocation: '/add-instance/form/nonexistent_service',
+      routes: <RouteBase>[
+        GoRoute(
+          path: '/add-instance',
+          name: AtriumRoutes.addInstanceName,
+          builder: (BuildContext context, GoRouterState state) =>
+              const ServiceGridScreen(),
+          routes: <RouteBase>[
+            GoRoute(
+              path: AtriumRoutes.addInstanceForm,
+              name: AtriumRoutes.addInstanceFormName,
+              builder: (BuildContext context, GoRouterState state) {
+                final String? kindStr = state.pathParameters['kind'];
+                final ServiceKind? kind = kindStr != null
+                    ? ServiceKind.values.asNameMap()[kindStr]
+                    : null;
+                if (kind == null) {
+                  return Scaffold(
+                    appBar: AppBar(title: const Text('Unknown service')),
+                    body: Text('No service matching "$kindStr" was found.'),
+                  );
+                }
+                return InstanceFormScreen(initialKind: kind);
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp.router(
+          routerConfig: router,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Unknown service'), findsOneWidget);
+    expect(
+      find.text('No service matching "nonexistent_service" was found.'),
+      findsOneWidget,
+    );
   });
 }
