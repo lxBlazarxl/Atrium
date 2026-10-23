@@ -407,81 +407,51 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
               ),
               child: Padding(
                 padding: const EdgeInsets.all(Insets.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Container(
-                          width: 52,
-                          height: 52,
-                          padding: const EdgeInsets.all(Insets.xs),
-                          decoration: BoxDecoration(
-                            color: accent.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(Radii.md),
-                          ),
-                          child: Center(
-                            child: ServiceIcon(kind: _kind, size: 36),
-                          ),
-                        ),
-                        const SizedBox(width: Insets.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                    Container(
+                      width: 52,
+                      height: 52,
+                      padding: const EdgeInsets.all(Insets.xs),
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(Radii.md),
+                      ),
+                      child: Center(
+                        child: ServiceIcon(kind: _kind, size: 36),
+                      ),
+                    ),
+                    const SizedBox(width: Insets.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Row(
                             children: <Widget>[
-                              Row(
-                                children: <Widget>[
-                                  Flexible(
-                                    child: Text(
-                                      _kind.displayName,
-                                      style: theme.textTheme.titleLarge?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                              Flexible(
+                                child: Text(
+                                  _kind.displayName,
+                                  style: theme.textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
                                   ),
-                                  if (_kind.isBeta) ...<Widget>[
-                                    const SizedBox(width: Insets.xs),
-                                    const BetaBadge(),
-                                  ],
-                                ],
-                              ),
-                              const SizedBox(height: Insets.xxs),
-                              Text(
-                                '${ServiceVisuals.roleLabel(_kind.role)} • ${_kind.tagline}',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: cs.onSurfaceVariant,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
+                              if (_kind.isBeta) ...<Widget>[
+                                const SizedBox(width: Insets.xs),
+                                const BetaBadge(),
+                              ],
                             ],
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: Insets.md),
-                    DropdownMenu<ServiceKind>(
-                      key: ValueKey<ServiceKind>(_kind),
-                      initialSelection: _kind,
-                      label: const Text('Service'),
-                      expandedInsets: EdgeInsets.zero,
-                      menuHeight: 350,
-                      leadingIcon: UnconstrainedBox(
-                        child: ServiceIcon(kind: _kind, size: 24),
-                      ),
-                      dropdownMenuEntries: <DropdownMenuEntry<ServiceKind>>[
-                        for (final ServiceKind k in ServiceKind.sortedValues)
-                          DropdownMenuEntry<ServiceKind>(
-                            value: k,
-                            label: k.isBeta
-                                ? '${k.displayName} - ${k.tagline} (Beta)'
-                                : '${k.displayName} - ${k.tagline}',
-                            leadingIcon: ServiceIcon(kind: k, size: 24),
+                          const SizedBox(height: Insets.xxs),
+                          Text(
+                            '${ServiceVisuals.roleLabel(_kind.role)} • ${_kind.tagline}',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: cs.onSurfaceVariant,
+                            ),
                           ),
-                      ],
-                      onSelected: (ServiceKind? k) => setState(() {
-                        _kind = k ?? _kind;
-                        _connectionResults = <String, ConnectionTestResult>{};
-                      }),
+                        ],
+                      ),
                     ),
                   ],
                 ),

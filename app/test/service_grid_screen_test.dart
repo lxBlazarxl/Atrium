@@ -59,9 +59,9 @@ void main() {
     expect(find.byKey(const Key('category_chip_mediaServer')), findsOneWidget);
     expect(find.byKey(const Key('category_chip_downloader')), findsOneWidget);
 
-    // Initial state renders Sonarr card
+    // Initial state renders AdGuard Home card (first alphabetically)
     expect(
-      find.byKey(const ValueKey<String>('service_card_sonarr')),
+      find.byKey(const ValueKey<String>('service_card_adguardHome')),
       findsOneWidget,
     );
   });
@@ -127,13 +127,15 @@ void main() {
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey<String>('service_card_sonarr')));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('service_card_adguardHome')),
+    );
     await tester.pumpAndSettle();
 
-    // Should now be on InstanceFormScreen with Sonarr preselected
+    // Should now be on InstanceFormScreen with AdGuard Home preselected
     expect(find.byType(InstanceFormScreen), findsOneWidget);
-    expect(find.textContaining('TV shows'), findsWidgets);
-    expect(find.text('Sonarr'), findsWidgets);
+    expect(find.textContaining('Network-wide blocking'), findsWidgets);
+    expect(find.text('AdGuard Home'), findsWidgets);
   });
 
   testWidgets('Category chips are generated from all ServiceRole values',

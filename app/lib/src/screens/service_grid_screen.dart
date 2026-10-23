@@ -82,43 +82,42 @@ class _ServiceGridScreenState extends State<ServiceGridScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add service'),
-      ),
-      body: Column(
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              Insets.lg,
-              Insets.sm,
-              Insets.lg,
-              Insets.xs,
-            ),
-            child: SearchBar(
-              key: const Key('service_search_bar'),
-              controller: _searchController,
+        titleSpacing: Insets.sm,
+        title: SizedBox(
+          height: 44,
+          child: TextField(
+            key: const Key('service_search_bar'),
+            controller: _searchController,
+            decoration: InputDecoration(
               hintText: 'Search services...',
-              leading: const Icon(Icons.search),
-              trailing: <Widget>[
-                if (_searchQuery.isNotEmpty)
-                  IconButton(
-                    icon: const Icon(Icons.clear),
-                    onPressed: () {
-                      _searchController.clear();
-                      _onSearchChanged();
-                    },
-                  ),
-              ],
-              elevation: const WidgetStatePropertyAll<double>(0),
-              backgroundColor: WidgetStatePropertyAll<Color>(
-                cs.surfaceContainerHighest.withValues(alpha: 0.5),
+              prefixIcon: const Icon(Icons.search, size: 20),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () {
+                        _searchController.clear();
+                        _onSearchChanged();
+                      },
+                    )
+                  : null,
+              filled: true,
+              fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+              contentPadding: const EdgeInsets.symmetric(horizontal: Insets.md),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(Radii.xl),
+                borderSide: BorderSide.none,
               ),
             ),
           ),
+        ),
+      ),
+      body: Column(
+        children: <Widget>[
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(
               horizontal: Insets.lg,
-              vertical: Insets.xs,
+              vertical: Insets.sm,
             ),
             child: Row(
               children: <Widget>[
@@ -197,7 +196,7 @@ class _ServiceGridScreenState extends State<ServiceGridScreen> {
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: Insets.md,
                       mainAxisSpacing: Insets.md,
-                      childAspectRatio: 1.15,
+                      childAspectRatio: 0.95,
                     ),
                     itemCount: services.length,
                     itemBuilder: (BuildContext context, int index) {
@@ -247,69 +246,80 @@ class _ServiceGridCard extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(Radii.md),
           onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(Insets.md),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Container(
-                      width: 44,
-                      height: 44,
-                      padding: const EdgeInsets.all(Insets.xs),
-                      decoration: BoxDecoration(
-                        color: accent.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(Radii.sm),
+          child: Stack(
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Insets.sm,
+                  vertical: Insets.md,
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      Container(
+                        width: 58,
+                        height: 58,
+                        padding: const EdgeInsets.all(Insets.xs),
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(Radii.md),
+                        ),
+                        child: Center(
+                          child: ServiceIcon(kind: kind, size: 40),
+                        ),
                       ),
-                      child: Center(
-                        child: ServiceIcon(kind: kind, size: 28),
+                      const SizedBox(height: Insets.sm),
+                      Text(
+                        kind.displayName,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    const Spacer(),
-                    if (kind.isBeta) const BetaBadge(),
-                  ],
-                ),
-                const Spacer(),
-                Text(
-                  kind.displayName,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: Insets.xxs),
-                Text(
-                  kind.tagline,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: cs.onSurfaceVariant,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: Insets.xs),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: cs.surfaceContainerHighest.withValues(alpha: 0.7),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    ServiceVisuals.roleLabel(kind.role),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      fontSize: 10,
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
-                    ),
+                      const SizedBox(height: Insets.xxs),
+                      Text(
+                        kind.tagline,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: Insets.xs),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: cs.surfaceContainerHighest.withValues(alpha: 0.7),
+                          borderRadius: BorderRadius.circular(Radii.sm),
+                        ),
+                        child: Text(
+                          ServiceVisuals.roleLabel(kind.role),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            fontSize: 10,
+                            color: cs.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+              if (kind.isBeta)
+                const Positioned(
+                  top: Insets.sm,
+                  right: Insets.sm,
+                  child: BetaBadge(),
+                ),
+            ],
           ),
         ),
       ),

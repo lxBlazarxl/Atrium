@@ -8,15 +8,16 @@ This document summarizes the changes and commits created to overhaul the instanc
 
 1. **Service Grid Selector Screen ([`service_grid_screen.dart`](file:///home/blazar/Projects/Atrium/app/lib/src/screens/service_grid_screen.dart))**:
    - Replaced immediate navigation to the form with a full-screen, searchable service grid.
-   - Shows all 28 services sorted by display name.
-   - Real-time search by service name, role, tagline, or identifier.
+   - Integrated live search field directly into the top `AppBar` to save vertical space.
+   - Shows all 28 services sorted alphabetically.
    - Dynamic role category filter chips generated from `ServiceRole.values` using `ServiceVisuals.roleLabel(role)`.
-   - Accessible cards with custom semantic labels (`Add <Service>`), focus rings matching border radius, brand-tinted icon badges, and beta flags.
+   - Centered and enlarged (40px) service icons inside grid cards, with custom semantic labels (`Add <Service>`), focus rings matching border radius, brand-tinted icon badges, and beta flags.
    - Tapping a service pushes to the form with that service pre-selected, and upon save, cleanly unwinds navigation back to the dashboard.
 
 2. **Overhauled Instance Form Screen ([`instance_form_screen.dart`](file:///home/blazar/Projects/Atrium/app/lib/src/screens/instance_form_screen.dart))**:
+   - Removed redundant dropdown menu on the form details screen now that service is chosen up front from the grid.
    - Grouped into structured Material 3 `_FormSectionCard` containers:
-     - **Service Hero Card**: Prominent brand icon, service title, role pill, beta badge, and unconditional `DropdownMenu<ServiceKind>` allowing service-kind changes in both Add and Edit modes.
+     - **Service Hero Card**: Clean brand icon, service title, role pill, and beta badge.
      - **General**: Name input with icon.
      - **Connection**: Local URL, external URL, default port chip hints, HTTP security warning banner, and URL mode selector.
      - **Authentication**: Contextual auth fields with preserved architectural rationale comments (API keys, Plex token sign-in, user/pass, session cookie).
