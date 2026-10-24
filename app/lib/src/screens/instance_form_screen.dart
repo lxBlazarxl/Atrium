@@ -35,11 +35,13 @@ String speedtestConnectionErrorMessage(SpeedtestTrackerException error) =>
         'Speedtest Tracker returned an unexpected response.',
     };
 
-/// Add / edit an instance.
+/// Add / edit an instance. When [instanceId] is null this is an "add" form
+/// for [initialKind], the service picked on the grid; otherwise it pre-fills
+/// from the existing instance.
 ///
-/// When [instanceId] is null this is an "add" form; otherwise it pre-fills from
-/// the existing instance.
-/// [initialKind] specifies the [ServiceKind] picked beforehand from the grid selector.
+/// The auth fields shown depend on the selected [ServiceKind]'s auth style:
+/// API-key and bearer-token services show one field; user/pass services show
+/// two; Plex shows a token field.
 class InstanceFormScreen extends ConsumerStatefulWidget {
   const InstanceFormScreen({
     this.instanceId,
@@ -341,6 +343,7 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
             ),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Delete'),
@@ -445,7 +448,7 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
                           ),
                           const SizedBox(height: Insets.xxs),
                           Text(
-                            '${ServiceVisuals.roleLabel(_kind.role)} • ${_kind.tagline}',
+                            _kind.tagline,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: cs.onSurfaceVariant,
                             ),
@@ -514,7 +517,7 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
                         ? 'http://192.168.1.10'
                         : 'http://192.168.1.10:${_kind.defaultPort}',
                     prefixIcon: const Icon(Icons.home_outlined),
-                    helperText: 'Reachable when connected to home LAN / Wi-Fi',
+                    helperText: 'Used on your home network',
                   ),
                   keyboardType: TextInputType.url,
                   autocorrect: false,
@@ -531,7 +534,7 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
                         ? 'https://speedtest.example.com'
                         : 'https://sonarr.example.com',
                     prefixIcon: const Icon(Icons.public_outlined),
-                    helperText: 'Reachable from outside LAN (reverse proxy, domain)',
+                    helperText: 'Used away from home',
                   ),
                   keyboardType: TextInputType.url,
                   autocorrect: false,
@@ -601,7 +604,6 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
             _FormSectionCard(
               title: 'Authentication',
               icon: Icons.lock_outline,
-              subtitle: _authSectionSubtitle(),
               children: _authFields(),
             ),
             const SizedBox(height: Insets.lg),
@@ -664,7 +666,7 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
                       ? const SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: ExpressiveProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.play_arrow_outlined),
                   label: Text(
@@ -731,17 +733,6 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
     );
   }
 
-  String? _authSectionSubtitle() {
-    return switch (_kind.authStyle) {
-      AuthStyle.apiKey => 'API key credentials',
-      AuthStyle.bearerToken => 'Bearer token credentials',
-      AuthStyle.plexToken => 'Plex account or token credentials',
-      AuthStyle.userPass => 'Username and password credentials',
-      AuthStyle.cookieLogin => 'Session login credentials',
-      AuthStyle.none => 'No credentials required',
-    };
-  }
-
   List<Widget> _authFields() {
     switch (_kind.authStyle) {
       case AuthStyle.apiKey:
@@ -764,6 +755,11 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
             ),
           ];
         }
+        // aria2's credential is its `--rpc-secret`, which the daemon reads
+        // from the first parameter of every RPC call rather than from a
+        // header - so the field says so. It is optional: a daemon started
+        // without a secret answers anyone, and demanding one would lock the
+        // user out of a perfectly reachable server.
         if (_kind == ServiceKind.aria2) {
           return <Widget>[
             TextFormField(
@@ -783,6 +779,8 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
             ),
           ];
         }
+        // Gluetun's control server can run without auth, through a role with
+        // auth = "none", and then there is no key to give.
         final bool keyOptional = _kind == ServiceKind.gluetun;
         return <Widget>[
           TextFormField(
