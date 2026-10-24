@@ -10,7 +10,10 @@ import 'package:flutter_test/flutter_test.dart';
 /// sign in at plex.tv. The form now offers the second way, so somebody who
 /// cannot reach their server can still add it.
 void main() {
-  Future<void> openForm(WidgetTester tester, {ServiceKind kind = ServiceKind.sonarr}) async {
+  Future<void> openForm(
+    WidgetTester tester, {
+    ServiceKind kind = ServiceKind.sonarr,
+  }) async {
     tester.view.physicalSize = const Size(900, 1400);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);

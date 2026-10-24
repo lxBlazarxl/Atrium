@@ -4,6 +4,8 @@ import 'package:core_ui/core_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../service_icon.dart';
+
 /// Screen displaying a searchable and categorized grid of all supported services.
 ///
 /// Tapping a service directs the user to the instance configuration form

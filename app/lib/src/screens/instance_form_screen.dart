@@ -11,6 +11,7 @@ import 'package:service_speedtest_tracker/service_speedtest_tracker.dart';
 import '../connection_test/connection_test_result.dart';
 import '../connection_test/connection_tester.dart';
 import '../plex_client_identifier.dart';
+import '../service_icon.dart';
 
 const String speedtestConnectionSuccessMessage =
     'Connected with results:read. Run permission cannot be verified until used.';

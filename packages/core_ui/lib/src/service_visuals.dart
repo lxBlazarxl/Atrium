@@ -78,36 +78,3 @@ abstract final class ServiceVisuals {
         ServiceRole.downloader => 'Download clients',
       };
 }
-
-/// Renders a bundled asset service icon (`assets/service_icons/<kind>.png`) with
-/// a fallback to [ServiceVisuals.icon] tinted with [ServiceVisuals.accent].
-class ServiceIcon extends StatelessWidget {
-  const ServiceIcon({
-    required this.kind,
-    this.size = 24,
-    super.key,
-  });
-
-  final ServiceKind kind;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return Image.asset(
-      'assets/service_icons/${kind.name}.png',
-      width: size,
-      height: size,
-      errorBuilder: (
-        BuildContext context,
-        Object error,
-        StackTrace? stackTrace,
-      ) =>
-          Icon(
-        ServiceVisuals.icon(kind),
-        size: size,
-        color: ServiceVisuals.accent(kind),
-      ),
-    );
-  }
-}
-
