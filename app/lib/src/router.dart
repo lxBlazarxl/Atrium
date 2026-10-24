@@ -23,6 +23,31 @@ final GlobalKey<NavigatorState> rootNavigatorKey =
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = rootNavigatorKey;
 
+/// The add form for the service named in the route's `kind`, or an error
+/// page when no service has that name. Public so tests route through it.
+Widget addInstanceFormPage(BuildContext context, GoRouterState state) {
+  final String? kindStr = state.pathParameters['kind'];
+  final ServiceKind? kind =
+      kindStr != null ? ServiceKind.values.asNameMap()[kindStr] : null;
+  if (kind == null) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Unknown service'),
+      ),
+      body: EmptyView(
+        icon: Icons.error_outline,
+        title: 'Unknown service',
+        message: 'No service matching "$kindStr" was found.',
+        action: FilledButton(
+          onPressed: () => context.goNamed(AtriumRoutes.addInstanceName),
+          child: const Text('Select a service'),
+        ),
+      ),
+    );
+  }
+  return InstanceFormScreen(initialKind: kind);
+}
+
 /// The app [GoRouter]. A stateful shell hosts the four bottom-nav branches;
 /// instance-management and service-detail screens push over the Dashboard
 /// branch.
@@ -80,32 +105,7 @@ final Provider<GoRouter> routerProvider = Provider<GoRouter>((Ref ref) {
                         path: AtriumRoutes.addInstanceForm,
                         parentNavigatorKey: _rootNavigatorKey,
                         name: AtriumRoutes.addInstanceFormName,
-                        builder: (BuildContext context, GoRouterState state) {
-                          final String? kindStr = state.pathParameters['kind'];
-                          final ServiceKind? kind = kindStr != null
-                              ? ServiceKind.values.asNameMap()[kindStr]
-                              : null;
-                          if (kind == null) {
-                            return Scaffold(
-                              appBar: AppBar(
-                                title: const Text('Unknown service'),
-                              ),
-                              body: EmptyView(
-                                icon: Icons.error_outline,
-                                title: 'Unknown service',
-                                message:
-                                    'No service matching "$kindStr" was found.',
-                                action: FilledButton(
-                                  onPressed: () => context.goNamed(
-                                    AtriumRoutes.addInstanceName,
-                                  ),
-                                  child: const Text('Select a service'),
-                                ),
-                              ),
-                            );
-                          }
-                          return InstanceFormScreen(initialKind: kind);
-                        },
+                        builder: addInstanceFormPage,
                       ),
                     ],
                   ),

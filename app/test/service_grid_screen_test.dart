@@ -1,3 +1,4 @@
+import 'package:atrium/src/router.dart';
 import 'package:atrium/src/screens/instance_form_screen.dart';
 import 'package:atrium/src/screens/service_grid_screen.dart';
 import 'package:core_models/core_models.dart';
@@ -22,13 +23,7 @@ void main() {
                 GoRoute(
                   path: AtriumRoutes.addInstanceForm,
                   name: AtriumRoutes.addInstanceFormName,
-                  builder: (BuildContext context, GoRouterState state) {
-                    final String? kindStr = state.pathParameters['kind'];
-                    final ServiceKind? kind = kindStr != null
-                        ? ServiceKind.values.asNameMap()[kindStr]
-                        : null;
-                    return InstanceFormScreen(initialKind: kind);
-                  },
+                  builder: addInstanceFormPage,
                 ),
               ],
             ),
@@ -204,19 +199,7 @@ void main() {
             GoRoute(
               path: AtriumRoutes.addInstanceForm,
               name: AtriumRoutes.addInstanceFormName,
-              builder: (BuildContext context, GoRouterState state) {
-                final String? kindStr = state.pathParameters['kind'];
-                final ServiceKind? kind = kindStr != null
-                    ? ServiceKind.values.asNameMap()[kindStr]
-                    : null;
-                if (kind == null) {
-                  return Scaffold(
-                    appBar: AppBar(title: const Text('Unknown service')),
-                    body: Text('No service matching "$kindStr" was found.'),
-                  );
-                }
-                return InstanceFormScreen(initialKind: kind);
-              },
+              builder: addInstanceFormPage,
             ),
           ],
         ),
@@ -233,7 +216,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Unknown service'), findsOneWidget);
+    expect(find.text('Select a service'), findsOneWidget);
     expect(
       find.text('No service matching "nonexistent_service" was found.'),
       findsOneWidget,
