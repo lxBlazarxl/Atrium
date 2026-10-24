@@ -162,7 +162,7 @@ class _ServiceGridScreenState extends State<ServiceGridScreen>
         : width > 600
             ? 3
             : 2;
-    final double baseRatio = width < 360 ? 0.82 : 0.88;
+    final double baseRatio = width < 360 ? 1.05 : 1.12;
     final double childAspectRatio =
         (baseRatio / textScale.clamp(1.0, 2.0)).clamp(0.55, 1.2);
 
@@ -309,26 +309,6 @@ class _ServiceGridCard extends StatelessWidget {
                         textAlign: TextAlign.center,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: Insets.xs),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: cs.surfaceContainerHighest.withValues(alpha: 0.7),
-                          borderRadius: BorderRadius.circular(Radii.sm),
-                        ),
-                        child: Text(
-                          ServiceVisuals.roleLabel(kind.role),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            fontSize: 10,
-                            color: cs.onSurfaceVariant,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
                       ),
                     ],
                   ),

@@ -488,26 +488,6 @@ class _InstanceFormScreenState extends ConsumerState<InstanceFormScreen> {
             _FormSectionCard(
               title: 'Connection',
               icon: Icons.lan_outlined,
-              trailing: _kind.defaultPort != null
-                  ? Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: cs.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(Radii.sm),
-                      ),
-                      child: Text(
-                        'Port: ${_kind.defaultPort}',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    )
-                  : null,
               children: <Widget>[
                 TextFormField(
                   controller: _localUrl,
@@ -983,13 +963,11 @@ class _FormSectionCard extends StatelessWidget {
     required this.title,
     required this.icon,
     required this.children,
-    this.trailing,
     this.subtitle,
   });
 
   final String title;
   final IconData icon;
-  final Widget? trailing;
   final String? subtitle;
   final List<Widget> children;
 
@@ -1026,12 +1004,6 @@ class _FormSectionCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (trailing != null) ...<Widget>[
-                  const SizedBox(width: Insets.sm),
-                  Flexible(
-                    child: trailing!,
-                  ),
-                ],
               ],
             ),
             if (subtitle != null) ...<Widget>[
